@@ -1,0 +1,7 @@
+REPLACE THIS FILE WITH: theme_frame_inactive.png
+- Role   : Frame when the Chrome window loses focus
+- Size   : 2500 × 200 px  (same as theme_frame)
+- Format : PNG-24
+- Tips   : Usually a desaturated or darkened version of theme_frame.
+           You can omit this key in manifest.json to let Chrome apply
+           its default fading effect to theme_frame instead.

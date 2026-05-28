@@ -1,0 +1,8 @@
+REPLACE THIS FILE WITH: theme_ntp_background.png
+- Role   : Full-page background of the New Tab Page
+- Size   : 1920 × 1080 px minimum; 3840 × 2160 px for HiDPI displays
+- Format : PNG or JPG  (JPG is acceptable here to reduce file size)
+- Tips   : This is the most visible part of your theme — use your
+           hero image / wallpaper here.
+           Set ntp_background_alignment and ntp_background_repeat in
+           manifest.json to control how it is positioned.

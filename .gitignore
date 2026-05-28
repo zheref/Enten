@@ -1,0 +1,23 @@
+# ─── OS / editor clutter ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-workspace
+
+# ─── Chrome package artefacts ─────────────────────────────────────────────────
+# The .crx is the signed package you upload; never commit it — generate on demand.
+*.crx
+*.pem          # Private key used to sign the extension — NEVER commit this.
+
+# ─── Build / export folders ───────────────────────────────────────────────────
+dist/
+build/
+release/
+
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+.env
+secrets.*

@@ -1,0 +1,7 @@
+REPLACE THIS FILE WITH: theme_toolbar.png
+- Role   : Background of the address-bar / toolbar row
+- Size   : 2500 × 40 px  (the toolbar is only ~40 px tall)
+- Format : PNG-24
+- Tips   : A solid colour or very subtle texture works best here;
+           complex imagery is hard to see at this height.
+           Many themes skip this image and rely on the toolbar colour only.
