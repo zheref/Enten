@@ -1,0 +1,92 @@
+---
+/**
+ * AuthPanel.astro — Google sign-in / sign-out button.
+ *
+ * With chrome.identity.getAuthToken() there is no explicit "sign in" step —
+ * Chrome uses its existing Google session silently. This panel is mainly for
+ * sign-out (token revocation) and showing the current account.
+ */
+---
+
+<div class="auth-panel" id="auth-panel">
+  <span class="auth-account" id="auth-account"></span>
+  <button class="auth-btn" id="auth-btn">Sign in with Google</button>
+</div>
+
+<script>
+  import { getRecentEmails } from '../lib/google.js';
+  import { signOut } from '../lib/google.js';
+  import { storageGet, storageSet, storageRemove } from '../lib/storage.js';
+
+  const btn     = document.getElementById('auth-btn');
+  const account = document.getElementById('auth-account');
+
+  async function checkAuth() {
+    const { userEmail } = await storageGet('userEmail');
+    if (userEmail) {
+      account.textContent = userEmail;
+      btn.textContent = 'Sign out';
+      btn.dataset.state = 'signed-in';
+    } else {
+      account.textContent = '';
+      btn.textContent = 'Connect Google account';
+      btn.dataset.state = 'signed-out';
+    }
+  }
+
+  btn?.addEventListener('click', async () => {
+    if (btn.dataset.state === 'signed-in') {
+      await signOut();
+      await storageRemove(['userEmail', 'cachedEmails', 'cachedEvents']);
+      location.reload();
+    } else {
+      // Trigger silent auth; the first API call will prompt if needed.
+      try {
+        // Fetch profile to confirm auth and store email.
+        const token = await new Promise((res, rej) =>
+          chrome.identity.getAuthToken({ interactive: true }, t =>
+            chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(t)
+          )
+        );
+        const profile = await fetch(
+          'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).then(r => r.json());
+        await storageSet({ userEmail: profile.email });
+        location.reload();
+      } catch (e) {
+        console.error('Auth failed', e);
+      }
+    }
+  });
+
+  checkAuth();
+</script>
+
+<style>
+  .auth-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .auth-account {
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .auth-btn {
+    padding: 6px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .auth-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+</style>

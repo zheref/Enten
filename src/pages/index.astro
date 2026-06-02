@@ -1,0 +1,104 @@
+---
+import CalendarWidget from '../components/CalendarWidget.astro';
+import EmailWidget    from '../components/EmailWidget.astro';
+import Shortcuts      from '../components/Shortcuts.astro';
+import AuthPanel      from '../components/AuthPanel.astro';
+import '../styles/theme.css';
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>New Tab</title>
+</head>
+<body>
+
+  <!-- Background image -->
+  <div class="bg">
+    <img src="/images/naruto-swift.png" alt="" aria-hidden="true" />
+  </div>
+
+  <!-- Top bar: auth -->
+  <header class="topbar">
+    <span class="topbar-brand">SergioSwift</span>
+    <AuthPanel />
+  </header>
+
+  <!-- Main dashboard grid -->
+  <main class="dashboard">
+
+    <!-- Left column: Calendar -->
+    <div class="panel">
+      <CalendarWidget />
+    </div>
+
+    <!-- Center: Shortcuts -->
+    <div class="panel panel--center">
+      <Shortcuts />
+    </div>
+
+    <!-- Right column: Email -->
+    <div class="panel">
+      <EmailWidget />
+    </div>
+
+  </main>
+
+</body>
+</html>
+
+<style>
+  /* ── Background ─────────────────────────────────────────────────────────── */
+  .bg {
+    position: fixed; inset: 0; z-index: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--jaguar);           /* shows while image loads */
+  }
+  .bg img {
+    width: 100vw; height: 100vh;
+    object-fit: cover;                   /* fill viewport; crop edges */
+    object-position: center;
+    max-width: 2560px; max-height: 1440px;
+    opacity: 0.35;                       /* subtle — dashboards live in front */
+  }
+
+  /* ── Top bar ────────────────────────────────────────────────────────────── */
+  .topbar {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+  }
+  .topbar-brand {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--color-accent);
+  }
+
+  /* ── Dashboard grid ─────────────────────────────────────────────────────── */
+  .dashboard {
+    position: relative; z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 260px 1fr; /* left | shortcuts | right */
+    gap: 16px;
+    padding: 0 24px 24px;
+    height: calc(100vh - 56px);           /* full height minus topbar */
+  }
+
+  .panel {
+    background: rgba(41, 42, 45, 0.82);  /* jaguar + slight transparency */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* Center column is just the shortcuts — no card background needed */
+  .panel--center {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    justify-content: center;
+  }
+</style>

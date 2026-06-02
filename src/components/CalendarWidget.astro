@@ -1,0 +1,103 @@
+---
+/**
+ * CalendarWidget.astro — upcoming Google Calendar events.
+ * Reads from the Google Calendar API via src/lib/google.js.
+ * Caches the last result in chrome.storage.local so stale data shows instantly.
+ */
+---
+
+<section class="widget" id="calendar-widget">
+  <h2 class="widget-title">
+    <span>📅</span> Calendar
+    <button class="widget-refresh" id="cal-refresh" title="Refresh">↻</button>
+  </h2>
+  <ul class="event-list scroll" id="event-list">
+    <li class="placeholder">Loading…</li>
+  </ul>
+</section>
+
+<script>
+  import { getUpcomingEvents } from '../lib/google.js';
+  import { storageGet, storageSet } from '../lib/storage.js';
+
+  const list = document.getElementById('event-list');
+
+  function fmt(isoOrDate) {
+    try {
+      const d = new Date(isoOrDate);
+      return d.toLocaleString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    } catch { return isoOrDate; }
+  }
+
+  function render(events) {
+    if (!list) return;
+    if (!events.length) {
+      list.innerHTML = '<li class="placeholder">No upcoming events</li>';
+      return;
+    }
+    list.innerHTML = events.map(e => `
+      <li class="event-item ${e.allDay ? 'all-day' : ''}">
+        <span class="event-time">${e.allDay ? 'All day' : fmt(e.start)}</span>
+        <span class="event-title">${e.title}</span>
+        ${e.location ? `<span class="event-loc">📍 ${e.location}</span>` : ''}
+      </li>
+    `).join('');
+  }
+
+  async function load(force = false) {
+    // Show cached events immediately, then refresh in background.
+    const { cachedEvents } = await storageGet('cachedEvents');
+    if (cachedEvents) render(cachedEvents);
+
+    if (!force && cachedEvents) return; // serve cache on initial load
+
+    try {
+      const events = await getUpcomingEvents(8);
+      await storageSet({ cachedEvents: events });
+      render(events);
+    } catch (err) {
+      if (!cachedEvents) {
+        list.innerHTML = `<li class="placeholder error">⚠ ${err.message}</li>`;
+      }
+    }
+  }
+
+  load();
+  document.getElementById('cal-refresh')?.addEventListener('click', () => load(true));
+</script>
+
+<style>
+  .widget { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+  .widget-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--color-text-muted);
+  }
+  .widget-refresh {
+    margin-left: auto; background: none; border: none;
+    color: var(--color-text-muted); cursor: pointer; font-size: 15px;
+    transition: color 0.15s;
+  }
+  .widget-refresh:hover { color: var(--color-accent); }
+
+  .event-list { list-style: none; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+  .event-item {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 10px;
+    background: var(--color-surface);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+  }
+  .event-item.all-day { border-left-color: var(--prussian-blue); }
+
+  .event-time  { font-size: 11px; color: var(--color-text-muted); }
+  .event-title { font-size: 13px; font-weight: 500; }
+  .event-loc   { font-size: 11px; color: var(--color-text-muted); }
+
+  .placeholder { color: var(--color-text-muted); font-size: 13px; padding: 8px 0; }
+  .placeholder.error { color: #e0725a; }
+</style>

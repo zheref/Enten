@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "SergioSwift",
+  "version": "2.0.0",
+  "description": "A dark, warm Chrome theme with a personal dashboard — email, calendar, and shortcuts on every new tab.",
+
+  "permissions": [
+    "identity",
+    "storage"
+  ],
+
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "https://accounts.google.com/*"
+  ],
+
+  "oauth2": {
+    "client_id": "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/calendar.readonly",
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+
+  "theme": {
+    "images": {
+      "theme_ntp_background": "images/naruto-swift.png"
+    },
+    "colors": {
+      "frame":               [ 19,  53,  82 ],
+      "frame_inactive":      [ 28,  66, 100 ],
+      "frame_incognito":     [ 10,  30,  50 ],
+      "toolbar":             [241, 233, 218 ],
+      "tab_text":            [237, 103,  51 ],
+      "tab_background_text": [178, 205, 222 ],
+      "bookmark_text":       [ 19,  53,  82 ],
+      "ntp_background":      [ 41,  42,  45 ],
+      "ntp_text":            [241, 233, 218 ],
+      "ntp_link":            [237, 103,  51 ],
+      "ntp_link_underline":  [237, 103,  51 ],
+      "ntp_header":          [241, 233, 218 ],
+      "omnibox_text":        [ 19,  53,  82 ],
+      "omnibox_background":  [255, 252, 247 ],
+      "button_background":   [241, 233, 218 ]
+    },
+    "tints": {
+      "buttons":        [ 0.047, 0.84, 0.38 ],
+      "frame":          [ -1.0, -1.0, -1.0  ],
+      "frame_inactive": [ -1.0,  0.35,  0.55]
+    },
+    "properties": {
+      "ntp_background_alignment": "center",
+      "ntp_background_repeat":    "no-repeat",
+      "ntp_logo_alternate":       1
+    }
+  }
+}

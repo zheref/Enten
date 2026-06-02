@@ -1,0 +1,121 @@
+---
+/**
+ * EmailWidget.astro — recent Gmail inbox messages.
+ * Reads from Gmail API via src/lib/google.js.
+ * Caches last fetch in chrome.storage.local.
+ *
+ * Note on Gmail scope & Web Store publishing:
+ *   gmail.readonly requires Google's OAuth verification for public distribution.
+ *   For personal use the "unverified app" warning is fine — just click "Continue".
+ *   See DASHBOARD.md §Publishing for the verification path.
+ */
+---
+
+<section class="widget" id="email-widget">
+  <h2 class="widget-title">
+    <span>✉️</span> Inbox
+    <button class="widget-refresh" id="email-refresh" title="Refresh">↻</button>
+  </h2>
+  <ul class="email-list scroll" id="email-list">
+    <li class="placeholder">Loading…</li>
+  </ul>
+</section>
+
+<script>
+  import { getRecentEmails } from '../lib/google.js';
+  import { storageGet, storageSet } from '../lib/storage.js';
+
+  const list = document.getElementById('email-list');
+
+  function senderName(from) {
+    const m = from.match(/^"?([^"<]+)"?\s*(?:<.*>)?$/);
+    return m ? m[1].trim() : from;
+  }
+
+  function render(emails) {
+    if (!list) return;
+    if (!emails.length) {
+      list.innerHTML = '<li class="placeholder">Inbox is empty</li>';
+      return;
+    }
+    list.innerHTML = emails.map(e => `
+      <li class="email-item ${e.unread ? 'unread' : ''}">
+        <span class="email-from">${senderName(e.from)}</span>
+        <span class="email-subject">${e.subject}</span>
+        <span class="email-snippet">${e.snippet}</span>
+      </li>
+    `).join('');
+  }
+
+  async function load(force = false) {
+    const { cachedEmails } = await storageGet('cachedEmails');
+    if (cachedEmails) render(cachedEmails);
+    if (!force && cachedEmails) return;
+
+    try {
+      const emails = await getRecentEmails(8);
+      await storageSet({ cachedEmails: emails });
+      render(emails);
+    } catch (err) {
+      if (!cachedEmails) {
+        list.innerHTML = `<li class="placeholder error">⚠ ${err.message}</li>`;
+      }
+    }
+  }
+
+  load();
+  document.getElementById('email-refresh')?.addEventListener('click', () => load(true));
+</script>
+
+<style>
+  .widget { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+  .widget-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--color-text-muted);
+  }
+  .widget-refresh {
+    margin-left: auto; background: none; border: none;
+    color: var(--color-text-muted); cursor: pointer; font-size: 15px;
+    transition: color 0.15s;
+  }
+  .widget-refresh:hover { color: var(--color-accent); }
+
+  .email-list { list-style: none; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+  .email-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    padding: 8px 10px;
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    cursor: default;
+    transition: background 0.1s;
+    border-left: 3px solid transparent;
+  }
+  .email-item:hover { background: var(--color-border); }
+  .email-item.unread { border-left-color: var(--color-accent); }
+
+  .email-from {
+    grid-column: 1; grid-row: 1;
+    font-size: 12px; font-weight: 600;
+    color: var(--color-text); white-space: nowrap;
+  }
+  .email-subject {
+    grid-column: 2; grid-row: 1;
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .email-item.unread .email-subject { color: var(--color-accent); }
+
+  .email-snippet {
+    grid-column: 1 / -1; grid-row: 2;
+    font-size: 11px; color: var(--color-text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .placeholder { color: var(--color-text-muted); font-size: 13px; padding: 8px 0; }
+  .placeholder.error { color: #e0725a; }
+</style>
