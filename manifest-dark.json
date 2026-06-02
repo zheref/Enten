@@ -48,5 +48,9 @@
       "ntp_logo_alternate":       1
     }
 
+  },
+
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
   }
 }
