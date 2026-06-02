@@ -48,7 +48,7 @@
       return;
     }
     list.innerHTML = emails.map((e: any) => `
-      <li class="md3-list-item md3-state-layer ${e.unread ? 'unread' : ''}">
+      <li class="md3-list-item three-line md3-state-layer ${e.unread ? 'unread' : ''}">
         <div class="leading ${e.unread ? 'leading--primary' : 'leading--secondary'}" aria-hidden="true">
           ${initial(e.from)}
         </div>
@@ -161,96 +161,8 @@
     overflow-y: auto; flex: 1; padding: 8px;
   }
 
-  /* MD3 list item (nav-drawer style: inset + rounded state layer) */
-  .md3-list-item {
-    display: flex; align-items: flex-start; gap: 16px;
-    min-height: 72px; padding: 10px 12px;
-    border-radius: var(--md-sys-shape-corner-large);
-    position: relative; color: inherit;
-    --state-color: var(--md-sys-color-on-surface);
-  }
-
-  /* 40dp monogram avatar */
-  .leading {
-    flex-shrink: 0; width: 40px; height: 40px; margin-top: 2px;
-    border-radius: var(--md-sys-shape-corner-full);
-    display: flex; align-items: center; justify-content: center;
-    font: var(--md-sys-typescale-title-small);
-  }
-  .leading--primary  { background: var(--md-sys-color-primary-container);   color: var(--md-sys-color-on-primary-container); }
-  .leading--secondary{ background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-
-  .item-content { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-
-  .item-overline {
-    font: var(--md-sys-typescale-label-small);
-    letter-spacing: var(--md-sys-typescale-label-small-tracking);
-    color: var(--md-sys-color-on-surface-variant);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .item-headline {
-    font: var(--md-sys-typescale-body-large);
-    letter-spacing: var(--md-sys-typescale-body-large-tracking);
-    color: var(--md-sys-color-on-surface);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .unread .item-headline { color: var(--md-sys-color-primary); font-weight: 500; }
-  .item-supporting {
-    font: var(--md-sys-typescale-body-medium);
-    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
-    color: var(--md-sys-color-on-surface-variant);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-
-  .unread-dot {
-    flex-shrink: 0; width: 8px; height: 8px;
-    border-radius: var(--md-sys-shape-corner-full);
-    background: var(--md-sys-color-primary);
-    align-self: center; margin-left: auto;
-  }
-
-  /* ── MD3 Empty state ────────────────────────────────────────────── */
-  .empty-state {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 8px;
-    padding: 32px 24px; flex: 1; text-align: center;
-    list-style: none;
-  }
-  .empty-state__icon { color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; }
-  .empty-state__headline {
-    font: var(--md-sys-typescale-title-medium);
-    letter-spacing: var(--md-sys-typescale-title-medium-tracking);
-    color: var(--md-sys-color-on-surface);
-  }
-  .empty-state__body {
-    font: var(--md-sys-typescale-body-medium);
-    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
-    color: var(--md-sys-color-on-surface-variant);
-    max-width: 220px;
-  }
-
-  /* MD3 Filled Button */
-  .md3-btn--filled {
-    display: inline-flex; align-items: center; justify-content: center;
-    height: 40px; padding: 0 24px; margin-top: 8px;
-    border-radius: var(--md-sys-shape-corner-full);
-    border: none;
-    background: var(--md-sys-color-primary);
-    color: var(--md-sys-color-on-primary);
-    font: var(--md-sys-typescale-label-large);
-    letter-spacing: var(--md-sys-typescale-label-large-tracking);
-    cursor: pointer; transition: box-shadow 200ms;
-    box-shadow: var(--md-sys-elevation-level1);
-  }
-  .md3-btn--filled:hover { box-shadow: var(--md-sys-elevation-level2); }
-
-  /* Centered MD3 status message (loading / empty list) */
-  .placeholder {
-    display: flex; align-items: center; justify-content: center;
-    flex: 1; min-height: 120px;
-    padding: 24px; text-align: center;
-    font: var(--md-sys-typescale-body-medium);
-    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
-    color: var(--md-sys-color-on-surface-variant);
-  }
+  /* NOTE: list items (with .three-line modifier), avatars, text, unread dot,
+     empty-state, filled button and the placeholder message are injected at
+     runtime, so their styles live in the GLOBAL MD3 component layer in
+     src/styles/theme.css (Astro scoped styles won't match innerHTML nodes). */
 </style>

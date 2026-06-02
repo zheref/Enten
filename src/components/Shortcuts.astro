@@ -33,7 +33,7 @@
   const DEFAULT_SHORTCUTS = [
     { label: 'Gmail',    url: 'https://mail.google.com',     fit: 'clip',    elevation: 1 },
     { label: 'Calendar', url: 'https://calendar.google.com', fit: 'clip',    elevation: 1 },
-    { label: 'GitHub',   url: 'https://github.com',          fit: 'contain', elevation: 1 },
+    { label: 'GitHub',   url: 'https://github.com',          fit: 'clip', elevation: 1 },
     { label: 'YouTube',  url: 'https://youtube.com',         fit: 'clip',    elevation: 1 },
     { label: 'Notion',   url: 'https://notion.so',           fit: 'contain', elevation: 1 },
     { label: 'Figma',    url: 'https://figma.com',           fit: 'contain', elevation: 1 },
@@ -86,7 +86,10 @@
   render();
 </script>
 
-<style>
+<!-- is:global — shelf icons are injected at runtime via innerHTML, which never
+     receives Astro's scoped [data-astro-cid-*] attribute. Scoped rules would
+     not match those nodes, so these (shelf-unique) classes must be global. -->
+<style is:global>
   .shelf-apps {
     display: flex;
     align-items: center;

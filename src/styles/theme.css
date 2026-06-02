@@ -212,3 +212,122 @@ html, body {
 ::-webkit-scrollbar-track        { background: transparent; }
 ::-webkit-scrollbar-thumb        { background: var(--md-sys-color-outline-variant); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover  { background: var(--md-sys-color-outline); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MD3 COMPONENT LAYER — GLOBAL (not component-scoped)
+
+   These classes style elements that widgets inject at runtime via innerHTML.
+   Astro's component <style> is scoped with a [data-astro-cid-*] attribute that
+   runtime-injected nodes never receive, so their rules would never match.
+   Defining them here (global) is what makes the injected list items, empty
+   states, buttons, and shelf icons actually pick up styling.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── List item (nav-drawer style: inset + rounded state layer) ──────────── */
+.md3-list-item {
+  display: flex; align-items: center; gap: 16px;
+  min-height: 64px; padding: 8px 12px;
+  border-radius: var(--md-sys-shape-corner-large);
+  color: inherit;
+  --state-color: var(--md-sys-color-on-surface);
+}
+/* three-line variant (e.g. email: sender / subject / snippet) */
+.md3-list-item.three-line {
+  align-items: flex-start;
+  min-height: 72px;
+  padding: 10px 12px;
+}
+
+/* 40dp leading avatar */
+.leading {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: var(--md-sys-shape-corner-full);
+  display: flex; align-items: center; justify-content: center;
+}
+.md3-list-item.three-line .leading { margin-top: 2px; }
+.leading--primary {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+.leading--secondary {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font: var(--md-sys-typescale-title-small);
+}
+
+/* Text block */
+.item-content { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item-overline {
+  font: var(--md-sys-typescale-label-small);
+  letter-spacing: var(--md-sys-typescale-label-small-tracking);
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.item-headline {
+  font: var(--md-sys-typescale-body-large);
+  letter-spacing: var(--md-sys-typescale-body-large-tracking);
+  color: var(--md-sys-color-on-surface);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.item-supporting {
+  font: var(--md-sys-typescale-body-medium);
+  letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Unread email highlight */
+.md3-list-item.unread .item-headline {
+  color: var(--md-sys-color-primary);
+  font-weight: 500;
+}
+.unread-dot {
+  flex-shrink: 0; width: 8px; height: 8px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-primary);
+  align-self: center; margin-left: auto;
+}
+
+/* ── Empty state ────────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px;
+  padding: 32px 24px; flex: 1; text-align: center;
+}
+.empty-state__icon { color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; }
+.empty-state__headline {
+  font: var(--md-sys-typescale-title-medium);
+  letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+  color: var(--md-sys-color-on-surface);
+}
+.empty-state__body {
+  font: var(--md-sys-typescale-body-medium);
+  letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+  color: var(--md-sys-color-on-surface-variant);
+  max-width: 220px;
+}
+
+/* ── Filled button (sign-in CTA) ────────────────────────────────────────── */
+.md3-btn--filled {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 40px; padding: 0 24px; margin-top: 8px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: none;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font: var(--md-sys-typescale-label-large);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+  cursor: pointer; transition: box-shadow 200ms;
+  box-shadow: var(--md-sys-elevation-level1);
+}
+.md3-btn--filled:hover { box-shadow: var(--md-sys-elevation-level2); }
+
+/* ── Centered status message (loading / empty list) ─────────────────────── */
+.placeholder {
+  display: flex; align-items: center; justify-content: center;
+  flex: 1; min-height: 120px;
+  padding: 24px; text-align: center;
+  font: var(--md-sys-typescale-body-medium);
+  letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+  color: var(--md-sys-color-on-surface-variant);
+}
