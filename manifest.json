@@ -44,9 +44,5 @@
       "ntp_background_repeat": "no-repeat",
       "ntp_logo_alternate": 0
     }
-  },
-
-  "chrome_url_overrides": {
-    "newtab": "newtab.html"
   }
 }
