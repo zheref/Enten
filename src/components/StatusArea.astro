@@ -260,6 +260,9 @@
     --md-menu-item-supporting-text-color: var(--md-sys-color-on-surface-variant);
     --md-menu-item-leading-icon-color: var(--md-sys-color-on-surface-variant);
   }
+  /* Don't wrap the account email — let the menu grow horizontally to fit it
+     (md-menu has no max-width cap, so a single line simply widens the menu). */
+  #auth-state, #auth-sub { white-space: nowrap; }
 
   /* ── M3 Expressive "vertical menu" treatment ───────────────────────────────
      @material/web ships BASELINE M3 (4dp container, full-width square items).
