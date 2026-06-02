@@ -1,18 +1,22 @@
 ---
 /**
- * EmailWidget — MD3 Elevated Card containing a 3-line List.
- *
- * List item spec (3-line): h=88dp, leading=40dp monogram avatar,
- *   overline=labelSmall, headline=bodyLarge, supporting=bodyMedium.
- * Unread items: headline in primary colour; avatar in primaryContainer.
+ * EmailWidget — MD3 Elevated Card, desktop floating style.
+ * Glass-surface: semi-transparent surfaceContainerLow + backdrop blur.
+ * Contains a card header + 3-line list of inbox messages.
+ * Unread indicator: primary-colored headline + leading avatar.
  */
 ---
 
 <div class="md3-card--elevated">
   <div class="card-header">
+    <span class="card-header__icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+      </svg>
+    </span>
     <span class="card-header__title">Inbox</span>
-    <button class="icon-btn md3-state-layer" id="email-refresh" title="Refresh" aria-label="Refresh inbox">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <button class="icon-btn md3-state-layer" id="email-refresh" aria-label="Refresh inbox">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
       </svg>
     </button>
@@ -27,16 +31,11 @@
   import { getRecentEmails } from '../lib/google.js';
   import { storageGet, storageSet } from '../lib/storage.js';
 
-  /** Extract the "First Last" part from "First Last <email@x.com>" */
   function displayName(from) {
     const m = from.match(/^"?([^"<]+)"?\s*(?:<.*>)?$/);
     return (m ? m[1] : from).trim();
   }
-
-  /** Single uppercase initial for the monogram avatar */
-  function initial(from) {
-    return displayName(from).charAt(0).toUpperCase() || '?';
-  }
+  function initial(from) { return displayName(from).charAt(0).toUpperCase() || '?'; }
 
   function render(emails) {
     const list = document.getElementById('email-list');
@@ -46,9 +45,8 @@
       return;
     }
     list.innerHTML = emails.map(e => `
-      <li class="md3-list-item md3-list-item--three-line md3-state-layer ${e.unread ? 'md3-list-item--unread' : ''}">
-        <!-- Monogram avatar (secondary container; primary container when unread) -->
-        <div class="list-item__leading ${e.unread ? 'list-item__leading--unread' : 'list-item__leading--email'}" aria-hidden="true">
+      <li class="md3-list-item md3-list-item--three-line md3-state-layer ${e.unread ? 'unread' : ''}">
+        <div class="list-item__leading ${e.unread ? 'list-item__leading--primary' : 'list-item__leading--secondary'}" aria-hidden="true">
           ${initial(e.from)}
         </div>
         <div class="list-item__content">
@@ -56,7 +54,7 @@
           <span class="list-item__headline">${e.subject}</span>
           <span class="list-item__supporting">${e.snippet}</span>
         </div>
-        ${e.unread ? '<span class="unread-dot" aria-label="Unread"></span>' : ''}
+        ${e.unread ? '<span class="unread-badge" aria-label="Unread"></span>' : ''}
       </li>
     `).join('');
   }
@@ -71,7 +69,8 @@
       render(emails);
     } catch (err) {
       const list = document.getElementById('email-list');
-      if (list && !await storageGet('cachedEmails').then(r => r.cachedEmails)) {
+      const cached = await storageGet('cachedEmails').then(r => r.cachedEmails);
+      if (list && !cached) {
         list.innerHTML = `<li class="list-item--placeholder list-item--error">⚠ ${err.message}</li>`;
       }
     }
@@ -82,20 +81,27 @@
 </script>
 
 <style>
-  /* Elevated card — shared spec (duplicated here so each component is self-contained) */
+  /* Glass surface card — same treatment as CalendarWidget */
   .md3-card--elevated {
     display: flex; flex-direction: column;
-    background: var(--md-sys-color-surface-container-low);
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 85%, transparent);
+    backdrop-filter: blur(16px) saturate(1.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.6);
     border-radius: var(--md-sys-shape-corner-large);
-    box-shadow: var(--md-sys-elevation-level1);
-    padding: 16px 0 8px;
+    box-shadow: var(--md-sys-elevation-level2);
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 60%, transparent);
+    padding: 12px 0 8px;
     height: 100%;
     overflow: hidden;
   }
+
   .card-header {
-    display: flex; align-items: center;
-    padding: 0 16px 8px; gap: 4px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px 10px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    margin-bottom: 4px;
   }
+  .card-header__icon { color: var(--md-sys-color-primary); display: flex; }
   .card-header__title {
     flex: 1;
     font: var(--md-sys-typescale-title-medium);
@@ -104,11 +110,10 @@
   }
   .icon-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 48px; height: 48px;
+    width: 40px; height: 40px;
     border-radius: var(--md-sys-shape-corner-full);
     border: none; background: transparent;
-    color: var(--md-sys-color-on-surface-variant);
-    cursor: pointer;
+    color: var(--md-sys-color-on-surface-variant); cursor: pointer;
     --state-color: var(--md-sys-color-on-surface-variant);
     transition: color 200ms;
   }
@@ -120,43 +125,36 @@
     overflow-y: auto; flex: 1;
   }
 
-  /* ── MD3 Three-line List Item ────────────────────────────────────── */
-  /* spec: h=88dp, leading=40dp, px=16dp, gap=16dp                     */
+  /* MD3 Three-line list item — spec: h=88dp */
   .md3-list-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    min-height: 88px;
-    padding: 12px 16px;
-    color: inherit;
+    display: flex; align-items: flex-start; gap: 16px;
+    min-height: 80px; padding: 10px 16px;
+    position: relative; color: inherit;
     --state-color: var(--md-sys-color-on-surface);
-    position: relative;
   }
 
   /* Monogram avatar */
   .list-item__leading {
     flex-shrink: 0;
-    width: 40px; height: 40px;
+    width: 40px; height: 40px; margin-top: 2px;
     border-radius: var(--md-sys-shape-corner-full);
     display: flex; align-items: center; justify-content: center;
-    font: var(--md-sys-typescale-title-medium);
-    letter-spacing: 0;
-    margin-top: 2px;
+    font: var(--md-sys-typescale-title-small);
   }
-  .list-item__leading--email {
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-  }
-  .list-item__leading--unread {
+  .list-item__leading--primary {
     background: var(--md-sys-color-primary-container);
     color: var(--md-sys-color-on-primary-container);
+  }
+  .list-item__leading--secondary {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 
   .list-item__content {
     flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0;
   }
 
-  /* Overline (sender name) — labelSmall */
+  /* Overline — sender name */
   .list-item__overline {
     font: var(--md-sys-typescale-label-small);
     letter-spacing: var(--md-sys-typescale-label-small-tracking);
@@ -164,19 +162,19 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* Headline (subject) */
+  /* Headline — subject */
   .list-item__headline {
     font: var(--md-sys-typescale-body-large);
     letter-spacing: var(--md-sys-typescale-body-large-tracking);
     color: var(--md-sys-color-on-surface);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .md3-list-item--unread .list-item__headline {
-    color: var(--md-sys-color-primary);  /* Giants Orange tonal — unread highlight */
+  .md3-list-item.unread .list-item__headline {
+    color: var(--md-sys-color-primary);
     font-weight: 500;
   }
 
-  /* Supporting text (snippet) */
+  /* Supporting — snippet */
   .list-item__supporting {
     font: var(--md-sys-typescale-body-medium);
     letter-spacing: var(--md-sys-typescale-body-medium-tracking);
@@ -184,17 +182,15 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* Unread indicator dot (trailing) */
-  .unread-dot {
+  /* Unread indicator dot */
+  .unread-badge {
     flex-shrink: 0;
     width: 8px; height: 8px;
     border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-primary);
-    align-self: center;
-    margin-left: auto;
+    align-self: center; margin-left: auto;
   }
 
-  /* Placeholder */
   .list-item--placeholder {
     padding: 16px;
     font: var(--md-sys-typescale-body-medium);

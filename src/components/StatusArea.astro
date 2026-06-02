@@ -1,0 +1,237 @@
+---
+/**
+ * StatusArea — Chrome OS-style system tray for the shelf's right side.
+ *
+ * Contains (left → right):
+ *   Auth chip · Segmented theme toggle · Clock
+ *
+ * Theme toggle cycles: light ↔ auto ↔ dark
+ * Persisted to chrome.storage.local as { themeMode: 'light' | 'auto' | 'dark' }
+ * Applied by toggling the .dark-scheme class on <html>.
+ */
+---
+
+<div class="status-area">
+
+  <!-- Auth chip (condensed for shelf) -->
+  <div class="auth-slot" id="auth-slot">
+    <button class="auth-btn md3-state-layer" id="auth-btn" title="Connect Google account">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+      </svg>
+      <span class="auth-btn__label" id="auth-label">Sign in</span>
+    </button>
+  </div>
+
+  <!-- MD3 Segmented button — theme mode -->
+  <!-- spec: h=40dp, shape=full, border=1dp outline-variant,            -->
+  <!--       selected segment: secondaryContainer bg + check icon        -->
+  <div class="segmented-btn" role="group" aria-label="Color theme">
+    <button class="segmented-btn__seg md3-state-layer" data-mode="light" aria-pressed="false" title="Light mode">
+      <span class="seg-icon" aria-hidden="true">
+        <!-- Sun -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0zM7.05 18.36l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.99.99 0 0 0-1.41 0z"/>
+        </svg>
+      </span>
+    </button>
+    <button class="segmented-btn__seg md3-state-layer" data-mode="auto" aria-pressed="true" title="Auto (system)">
+      <span class="seg-icon" aria-hidden="true">
+        <!-- Monitor -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
+        </svg>
+      </span>
+    </button>
+    <button class="segmented-btn__seg md3-state-layer" data-mode="dark" aria-pressed="false" title="Dark mode">
+      <span class="seg-icon" aria-hidden="true">
+        <!-- Moon -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+        </svg>
+      </span>
+    </button>
+  </div>
+
+  <!-- Clock -->
+  <div class="clock" id="clock" aria-live="polite" aria-label="Current time">
+    <span class="clock__time" id="clock-time">--:--</span>
+    <span class="clock__date" id="clock-date"></span>
+  </div>
+
+</div>
+
+<script>
+  import { storageGet, storageSet, storageRemove } from '../lib/storage.js';
+
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  const MODES = ['light', 'auto', 'dark'];
+
+  function applyTheme(mode) {
+    const root = document.documentElement;
+    if (mode === 'dark') {
+      root.classList.add('dark-scheme');
+    } else if (mode === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.toggle('dark-scheme', prefersDark);
+    } else {
+      root.classList.remove('dark-scheme');
+    }
+    // Update segmented button state
+    document.querySelectorAll('.segmented-btn__seg').forEach(btn => {
+      const active = (btn as HTMLElement).dataset.mode === mode;
+      btn.setAttribute('aria-pressed', String(active));
+    });
+  }
+
+  async function initTheme() {
+    const { themeMode } = await storageGet('themeMode');
+    applyTheme(themeMode ?? 'auto');
+  }
+
+  document.querySelectorAll('.segmented-btn__seg').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const mode = (btn as HTMLElement).dataset.mode ?? 'auto';
+      await storageSet({ themeMode: mode });
+      applyTheme(mode);
+    });
+  });
+
+  // Re-apply when system preference changes (relevant in "auto" mode)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', async () => {
+    const { themeMode } = await storageGet('themeMode');
+    if ((themeMode ?? 'auto') === 'auto') applyTheme('auto');
+  });
+
+  initTheme();
+
+  // ── Clock ─────────────────────────────────────────────────────────────────
+  function updateClock() {
+    const now  = new Date();
+    const time = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const date = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeEl = document.getElementById('clock-time');
+    const dateEl = document.getElementById('clock-date');
+    if (timeEl) timeEl.textContent = time;
+    if (dateEl) dateEl.textContent = date;
+  }
+  updateClock();
+  setInterval(updateClock, 10_000);
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const authBtn   = document.getElementById('auth-btn');
+  const authLabel = document.getElementById('auth-label');
+
+  async function checkAuth() {
+    const { userEmail } = await storageGet('userEmail');
+    if (userEmail && authLabel) {
+      authLabel.textContent = userEmail.split('@')[0]; // first part only, keeps it short
+      authBtn?.setAttribute('title', `Signed in as ${userEmail} — click to sign out`);
+      authBtn?.setAttribute('data-state', 'signed-in');
+    }
+  }
+
+  authBtn?.addEventListener('click', async () => {
+    const { userEmail } = await storageGet('userEmail');
+    if (userEmail) {
+      // Sign out
+      const { signOut } = await import('../lib/google.js');
+      await signOut();
+      await storageRemove(['userEmail', 'cachedEmails', 'cachedEvents']);
+      location.reload();
+    } else {
+      // Sign in
+      if (typeof chrome === 'undefined' || !chrome?.identity) return;
+      try {
+        const token = await new Promise<string>((res, rej) =>
+          chrome.identity.getAuthToken({ interactive: true }, t =>
+            chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(t)
+          )
+        );
+        const profile = await fetch(
+          'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).then(r => r.json());
+        await storageSet({ userEmail: profile.email });
+        location.reload();
+      } catch (e) { console.error('[SergioSwift] Auth error', e); }
+    }
+  });
+
+  checkAuth();
+</script>
+
+<style>
+  .status-area {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+  }
+
+  /* ── Auth button (text + icon, compact) ─────────────────────────── */
+  .auth-btn {
+    display: flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 12px;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: none;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    font: var(--md-sys-typescale-label-medium);
+    letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+    cursor: pointer;
+    transition: color 200ms;
+    --state-color: var(--md-sys-color-on-surface);
+  }
+  .auth-btn:hover { color: var(--md-sys-color-on-surface); }
+  .auth-btn__label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── MD3 Segmented Button ───────────────────────────────────────── */
+  /* spec: h=40dp, shape=full, border=1dp outline-variant around group */
+  .segmented-btn {
+    display: flex;
+    height: 40px;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    overflow: hidden;
+  }
+  .segmented-btn__seg {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 48px;
+    border: none;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    transition: background 200ms, color 200ms;
+    --state-color: var(--md-sys-color-on-secondary-container);
+    /* Dividers between segments */
+    border-right: 1px solid var(--md-sys-color-outline-variant);
+  }
+  .segmented-btn__seg:last-child { border-right: none; }
+
+  /* Selected segment — secondaryContainer bg */
+  .segmented-btn__seg[aria-pressed="true"] {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  .seg-icon { display: flex; align-items: center; pointer-events: none; }
+
+  /* ── Clock ──────────────────────────────────────────────────────── */
+  .clock {
+    display: flex; flex-direction: column; align-items: flex-end;
+    padding: 0 12px;
+    min-width: 72px;
+  }
+  .clock__time {
+    font: var(--md-sys-typescale-title-small);
+    letter-spacing: var(--md-sys-typescale-title-small-tracking);
+    color: var(--md-sys-color-on-surface);
+  }
+  .clock__date {
+    font: var(--md-sys-typescale-label-small);
+    letter-spacing: var(--md-sys-typescale-label-small-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+</style>

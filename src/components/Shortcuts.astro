@@ -1,22 +1,19 @@
 ---
 /**
- * Shortcuts — MD3 Assist Chip grid.
- * spec: height 32dp, shape=full (corner-full), surfaceContainerLow bg,
- *       outline-variant border, labelLarge text, 18dp leading icon.
+ * Shortcuts — compact shelf app icons for the bottom dock.
  *
- * Shortcuts are stored in chrome.storage.local so the user can add/remove
- * without touching source code.
+ * Each shortcut renders as a 40×40 dp icon-only button with emoji,
+ * a tooltip label, and an MD3 state layer on hover/press.
+ * Tooltips appear above (Chrome OS shelf tooltip style).
  */
 ---
 
-<section class="shortcuts">
-  <div class="chip-grid" id="shortcut-grid" role="list">
-    <!-- Populated by script -->
-  </div>
-</section>
+<div class="shelf-apps" id="shelf-apps" role="list" aria-label="App shortcuts">
+  <!-- Populated by script -->
+</div>
 
 <script>
-  import { storageGet, storageSet } from '../lib/storage.js';
+  import { storageGet } from '../lib/storage.js';
 
   const DEFAULT_SHORTCUTS = [
     { label: 'Gmail',     url: 'https://mail.google.com',     emoji: '✉️' },
@@ -32,20 +29,21 @@
   async function render() {
     const { shortcuts } = await storageGet('shortcuts');
     const items = shortcuts ?? DEFAULT_SHORTCUTS;
-    const grid  = document.getElementById('shortcut-grid');
-    if (!grid) return;
+    const shelf = document.getElementById('shelf-apps');
+    if (!shelf) return;
 
-    grid.innerHTML = items.map((s, i) => `
+    shelf.innerHTML = items.map(s => `
       <a
-        class="assist-chip md3-state-layer"
+        class="shelf-icon md3-state-layer"
         href="${s.url}"
         target="_blank"
         rel="noopener noreferrer"
         role="listitem"
-        data-index="${i}"
+        aria-label="${s.label}"
+        data-tooltip="${s.label}"
       >
-        <span class="assist-chip__icon" aria-hidden="true">${s.emoji ?? '🔗'}</span>
-        <span class="assist-chip__label">${s.label}</span>
+        <span class="shelf-icon__emoji" aria-hidden="true">${s.emoji ?? '🔗'}</span>
+        <span class="shelf-icon__tooltip">${s.label}</span>
       </a>
     `).join('');
   }
@@ -54,48 +52,50 @@
 </script>
 
 <style>
-  .shortcuts { width: 100%; }
-
-  /* ── MD3 Chip grid ───────────────────────────────────────────────── */
-  .chip-grid {
+  .shelf-apps {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
   }
 
-  /* ── MD3 Assist Chip ─────────────────────────────────────────────── */
-  /* spec: h=32dp, shape=full, bg=surfaceContainerLow,                 */
-  /*       border=1dp outline-variant, px=16dp, gap=8dp, icon=18dp     */
-  .assist-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 32px;
-    padding: 0 16px 0 8px;       /* leading icon needs less padding    */
-    border-radius: var(--md-sys-shape-corner-full);
-    background: var(--md-sys-color-surface-container-low);
-    border: 1px solid var(--md-sys-color-outline-variant);
+  /* ── Shelf icon button ──────────────────────────────────────────── */
+  /* 40×40dp tap target, icon-only, full-round shape                   */
+  .shelf-icon {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: var(--md-sys-shape-corner-medium);
     text-decoration: none;
-    color: var(--md-sys-color-on-surface);
-    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1),
-                border-color 200ms;
-    --state-color: var(--md-sys-color-on-surface);  /* state layer color */
-  }
-  /* Elevated state on hover — MD3 chips gain elevation-1 on hover */
-  .assist-chip:hover {
-    box-shadow: var(--md-sys-elevation-level1);
-    border-color: transparent;
+    color: inherit;
+    --state-color: var(--md-sys-color-on-surface);
+    flex-shrink: 0;
   }
 
-  .assist-chip__icon {
-    font-size: 18px;
+  .shelf-icon__emoji {
+    font-size: 22px;
     line-height: 1;
-    display: flex;
-    align-items: center;
+    pointer-events: none;
+    position: relative; z-index: 2;
   }
-  .assist-chip__label {
-    font: var(--md-sys-typescale-label-large);
-    letter-spacing: var(--md-sys-typescale-label-large-tracking);
+
+  /* Chrome OS-style tooltip appearing above the icon */
+  .shelf-icon__tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%; transform: translateX(-50%);
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface);
+    font: var(--md-sys-typescale-label-medium);
+    letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: var(--md-sys-shape-corner-extra-small);
+    box-shadow: var(--md-sys-elevation-level2);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 150ms 400ms;  /* delayed reveal */
+    z-index: 100;
   }
+  .shelf-icon:hover .shelf-icon__tooltip { opacity: 1; }
 </style>

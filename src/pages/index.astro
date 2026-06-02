@@ -2,7 +2,7 @@
 import CalendarWidget from '../components/CalendarWidget.astro';
 import EmailWidget    from '../components/EmailWidget.astro';
 import Shortcuts      from '../components/Shortcuts.astro';
-import AuthPanel      from '../components/AuthPanel.astro';
+import StatusArea     from '../components/StatusArea.astro';
 import '../styles/theme.css';
 ---
 <!DOCTYPE html>
@@ -11,105 +11,170 @@ import '../styles/theme.css';
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
   <title>New Tab</title>
-  <!-- Roboto — MD3 reference typeface -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-  <!-- ── Wallpaper backdrop (decorative, behind all MD3 surfaces) ── -->
-  <div class="backdrop" aria-hidden="true">
+  <!-- ── Full-bleed wallpaper ─────────────────────────────────────── -->
+  <div class="wallpaper" aria-hidden="true">
     <img src="/images/naruto-swift.png" alt="" />
+    <div class="wallpaper__scrim"></div>
   </div>
 
-  <!-- ── MD3 Small Top App Bar ──────────────────────────────────────── -->
-  <!-- spec: 64dp tall, surfaceContainer bg, titleLarge headline       -->
-  <header class="top-app-bar">
-    <span class="top-app-bar__headline">SergioSwift</span>
-    <div class="top-app-bar__actions">
-      <AuthPanel />
-    </div>
-  </header>
-
-  <!-- ── Main content — 3-column expanded layout ───────────────────── -->
-  <main class="layout">
-
-    <!-- Left: Calendar card -->
-    <div class="layout__col">
+  <!-- ── Desktop area (above the shelf) ──────────────────────────── -->
+  <main class="desktop" id="desktop">
+    <div class="desktop__widgets">
       <CalendarWidget />
+      <EmailWidget />
     </div>
+  </main>
 
-    <!-- Centre: Shortcuts -->
-    <div class="layout__col layout__col--center">
+  <!-- ── Chrome OS–style Shelf ────────────────────────────────────── -->
+  <!--
+    Spec: fixed bottom bar, surfaceContainer + blur, 56dp tall.
+    Left side: launcher FAB + pinned app shortcuts.
+    Right side: status area (auth · theme toggle · clock).
+  -->
+  <nav class="shelf" aria-label="Shelf">
+
+    <!-- Left: launcher + shortcuts -->
+    <div class="shelf__left">
+      <!-- MD3 Small FAB — launcher button -->
+      <button
+        class="launcher-fab md3-state-layer"
+        aria-label="Show all apps"
+        title="All apps"
+        id="launcher-btn"
+      >
+        <!-- Grid / launcher icon -->
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
+        </svg>
+      </button>
+
+      <!-- Divider -->
+      <div class="shelf__divider" aria-hidden="true"></div>
+
+      <!-- Pinned app icons -->
       <Shortcuts />
     </div>
 
-    <!-- Right: Email card -->
-    <div class="layout__col">
-      <EmailWidget />
+    <!-- Right: status area -->
+    <div class="shelf__right">
+      <StatusArea />
     </div>
 
-  </main>
+  </nav>
 
 </body>
 </html>
 
 <style>
-  /* ── Backdrop ────────────────────────────────────────────────────── */
-  .backdrop {
+  /* ── Wallpaper ──────────────────────────────────────────────────── */
+  .wallpaper {
     position: fixed; inset: 0; z-index: 0;
     background: var(--md-sys-color-background);
-    overflow: hidden;
   }
-  .backdrop img {
+  .wallpaper img {
     width: 100%; height: 100%;
-    object-fit: cover;
-    object-position: center;
-    opacity: 0.12;          /* subtle — MD3 surfaces sit on top */
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  /* Subtle scrim so widgets stay legible over any image */
+  .wallpaper__scrim {
+    position: absolute; inset: 0;
+    background: var(--wallpaper-scrim);
   }
 
-  /* ── MD3 Small Top App Bar ──────────────────────────────────────── */
-  /* spec: h=64dp, bg=surfaceContainer, title=titleLarge, px=16dp      */
-  .top-app-bar {
-    position: relative; z-index: 10;
+  /* ── Desktop content area ───────────────────────────────────────── */
+  /* Takes up all space above the shelf (56dp) */
+  .desktop {
+    position: fixed;
+    inset: 0 0 56px;
+    z-index: 10;
+    overflow: hidden;
     display: flex;
-    align-items: center;
-    height: 64px;
-    padding: 0 16px;
-    background: var(--md-sys-color-surface-container);
-    gap: 16px;
+    align-items: flex-end;   /* widgets sit near the bottom of the desktop */
+    justify-content: center;
+    padding: 16px 24px 24px;
+    pointer-events: none;    /* let clicks pass through empty desktop areas */
   }
-  .top-app-bar__headline {
+
+  /* Widgets row */
+  .desktop__widgets {
+    pointer-events: auto;
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 1280px;
+    height: clamp(340px, 50vh, 520px);
+  }
+
+  .desktop__widgets > * {
     flex: 1;
-    font: var(--md-sys-typescale-title-large);
-    color: var(--md-sys-color-on-surface);
-  }
-  .top-app-bar__actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    min-width: 0;
   }
 
-  /* ── Expanded layout grid ───────────────────────────────────────── */
-  /* 3-column: side cards share equal width, centre is narrower        */
-  .layout {
-    position: relative; z-index: 10;
-    display: grid;
-    grid-template-columns: 1fr 300px 1fr;
-    gap: 16px;
-    padding: 16px;
-    height: calc(100vh - 64px);
-    overflow: hidden;
-  }
-  .layout__col {
+  /* ── Shelf ──────────────────────────────────────────────────────── */
+  /*
+   * Fixed to the bottom. 56dp tall.
+   * Background: semi-transparent surfaceContainer + backdrop blur —
+   * same visual language as Chrome OS's shelf / Android 12's navigation bar.
+   */
+  .shelf {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    height: 56px;
     display: flex;
-    flex-direction: column;
-    min-height: 0;       /* allow flex children to scroll */
-    overflow: hidden;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    background: var(--shelf-bg);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    /* Subtle top border as separator */
+    border-top: 1px solid var(--md-sys-color-outline-variant);
   }
-  .layout__col--center {
-    justify-content: flex-start;
-    padding-top: 8px;
+
+  .shelf__left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
   }
+
+  .shelf__right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  /* Vertical divider between FAB and shortcuts */
+  .shelf__divider {
+    width: 1px;
+    height: 28px;
+    background: var(--md-sys-color-outline-variant);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  /* ── MD3 Small FAB (launcher) ───────────────────────────────────── */
+  /* spec: 40dp, shape=medium (12dp), surfaceContainerHigh bg,         */
+  /*       primary tint icon, elevation-3                               */
+  .launcher-fab {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: var(--md-sys-shape-corner-medium);
+    border: none;
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-primary);
+    box-shadow: var(--md-sys-elevation-level3);
+    cursor: pointer;
+    flex-shrink: 0;
+    --state-color: var(--md-sys-color-primary);
+    transition: box-shadow 200ms;
+  }
+  .launcher-fab:hover { box-shadow: var(--md-sys-elevation-level4); }
 </style>
