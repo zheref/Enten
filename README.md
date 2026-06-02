@@ -154,6 +154,20 @@ npm run build          # emits dist/
 
 To iterate: edit source → `npm run build` → click **↺** on `chrome://extensions`.
 
+### Enjoy it full-screen (hide Chrome's New Tab footer)
+
+Chrome draws its own footer bar (the extension name + a **Customize Chrome**
+button) at the bottom of every New Tab page, which overlaps the shelf. To hide
+it and get the edge-to-edge dashboard:
+
+1. Open a New Tab.
+2. Click **Customize Chrome** (bottom-right) to open the side panel.
+3. Go to the **Footer** section.
+4. Turn **off** *"Show footer on New Tab page"*.
+
+The footer disappears and the dashboard fills the whole window. This is a Chrome
+setting (browser UI), so it can't be toggled from the extension itself.
+
 ### Development without Chrome
 
 ```bash
@@ -231,6 +245,7 @@ git branch -D experiment/my-idea   # or discard
 | Theme loads but NTP is default Chrome | Loaded from `dist/` (dashboard manifest has no theme) | Load the repo root for the theme; `dist/` for the dashboard |
 | Dashboard NTP not showing | Extension loaded from repo root (theme manifest ignores `chrome_url_overrides`) | Load from `dist/`, not the repo root |
 | Custom NTP not showing even from `dist/` | Another extension owns the NTP | Disable other "new tab" extensions |
+| A footer bar / "Customize Chrome" button overlaps the shelf | Chrome's built-in New Tab footer | Customize Chrome → **Footer** → turn off *"Show footer on New Tab page"* |
 | `_astro` directory error | Old build before the fix | Run `npm run build` again and reload |
 | Theme won't load | `manifest.json` syntax error | Validate at [jsonlint.com](https://jsonlint.com) |
 | Calendar / Gmail not loading | OAuth client ID not set | Follow `DASHBOARD.md §Step 2` |
