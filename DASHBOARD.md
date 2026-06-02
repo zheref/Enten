@@ -154,6 +154,42 @@ return mock data / an in-memory store — so `npm run dev` never crashes.
 
 ---
 
+## Customising shelf shortcuts
+
+Shortcuts live in `chrome.storage.local` under the `shortcuts` key. Defaults
+are defined in `src/components/Shortcuts.astro`. Each entry supports:
+
+```js
+{
+  label: 'GitHub',                  // accessible name + tooltip
+  url:   'https://github.com',      // opens in a new tab; favicon resolved from host
+  fit:   'contain',                 // 'contain' | 'clip'   (default: 'contain')
+  elevation: 1,                     // 0 | 1 | 2 | 3        (MD3 levels, default: 1)
+}
+```
+
+**`fit` — how the favicon sits in the white circle:**
+
+| Value | Behaviour | Use for |
+|-------|-----------|---------|
+| `contain` | Favicon stays small (22dp), centred, never touches the edge | Transparent / glyph-only favicons (GitHub, Notion, Vercel) |
+| `clip` | Favicon fills the 40dp circle and is clipped round | Favicons with their own square coloured background (Gmail, YouTube) |
+
+**`elevation`** maps to MD3 elevation levels 0–3 and is preserved in both fit
+modes; hover bumps it up one level.
+
+To change them at runtime, write a new array to storage from the DevTools
+console on the new-tab page:
+
+```js
+chrome.storage.local.set({ shortcuts: [
+  { label: 'Gmail', url: 'https://mail.google.com', fit: 'clip', elevation: 2 },
+  // …
+]});
+```
+
+---
+
 ## Multi-account support
 
 `chrome.identity.getAuthToken()` only works for the **primary** signed-in

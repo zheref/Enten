@@ -2,9 +2,23 @@
 /**
  * Shortcuts — Chrome OS–style circular app icons in the shelf.
  *
- * Each icon is a 40dp white circle holding the site's favicon (no labels).
- * Favicons are fetched from Google's favicon service by domain, so any URL
- * the user pins automatically gets the right icon.
+ * Each icon is a 40dp circle (white background, MD3 elevation) holding the
+ * site's favicon, fetched from Google's favicon service by domain.
+ *
+ * Per-item favicon handling (the `fit` field):
+ *   • 'contain' → favicon stays small (22dp) and centred, never touching the
+ *                 circle's edge. Best for transparent / glyph-only favicons.
+ *                 The white circle remains visible around the icon.
+ *   • 'clip'    → favicon fills the whole circle (40dp, object-fit: cover) and
+ *                 is clipped by the circle's rounded boundary. Best for
+ *                 favicons that ship their own square coloured background —
+ *                 turns a square favicon into a round app icon.
+ *
+ * Per-item elevation (the `elevation` field, 0–3):
+ *   Maps to MD3 elevation levels. Defaults to 1. Kept in both fit modes.
+ *
+ * Both fields are configurable per shortcut and persisted in
+ * chrome.storage.local under `shortcuts`.
  */
 ---
 
@@ -15,15 +29,16 @@
 <script>
   import { storageGet } from '../lib/storage.js';
 
+  // fit: 'contain' | 'clip'  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',     url: 'https://mail.google.com'     },
-    { label: 'Calendar',  url: 'https://calendar.google.com' },
-    { label: 'GitHub',    url: 'https://github.com'          },
-    { label: 'YouTube',   url: 'https://youtube.com'         },
-    { label: 'Notion',    url: 'https://notion.so'           },
-    { label: 'Figma',     url: 'https://figma.com'           },
-    { label: 'Linear',    url: 'https://linear.app'          },
-    { label: 'Vercel',    url: 'https://vercel.com'          },
+    { label: 'Gmail',    url: 'https://mail.google.com',     fit: 'clip',    elevation: 1 },
+    { label: 'Calendar', url: 'https://calendar.google.com', fit: 'clip',    elevation: 1 },
+    { label: 'GitHub',   url: 'https://github.com',          fit: 'contain', elevation: 1 },
+    { label: 'YouTube',  url: 'https://youtube.com',         fit: 'clip',    elevation: 1 },
+    { label: 'Notion',   url: 'https://notion.so',           fit: 'contain', elevation: 1 },
+    { label: 'Figma',    url: 'https://figma.com',           fit: 'contain', elevation: 1 },
+    { label: 'Linear',   url: 'https://linear.app',          fit: 'clip',    elevation: 1 },
+    { label: 'Vercel',   url: 'https://vercel.com',          fit: 'contain', elevation: 1 },
   ];
 
   /** Resolve a high-res favicon for a URL via Google's favicon service. */
@@ -42,21 +57,30 @@
     const shelf = document.getElementById('shelf-apps');
     if (!shelf) return;
 
-    shelf.innerHTML = items.map((s: any) => `
-      <a
-        class="shelf-icon md3-state-layer"
-        href="${s.url}"
-        target="_blank"
-        rel="noopener noreferrer"
-        role="listitem"
-        aria-label="${s.label}"
-        title="${s.label}"
-      >
-        <span class="shelf-icon__circle" aria-hidden="true">
-          <img class="shelf-icon__favicon" src="${faviconFor(s.url)}" alt="" loading="lazy" />
-        </span>
-      </a>
-    `).join('');
+    shelf.innerHTML = items.map((s: any) => {
+      const fit = s.fit === 'clip' ? 'clip' : 'contain';      // default: contain
+      const elev = [0, 1, 2, 3].includes(s.elevation) ? s.elevation : 1; // default: 1
+      return `
+        <a
+          class="shelf-icon md3-state-layer"
+          href="${s.url}"
+          target="_blank"
+          rel="noopener noreferrer"
+          role="listitem"
+          aria-label="${s.label}"
+          title="${s.label}"
+        >
+          <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
+            <img
+              class="shelf-icon__favicon fit-${fit}"
+              src="${faviconFor(s.url)}"
+              alt=""
+              loading="lazy"
+            />
+          </span>
+        </a>
+      `;
+    }).join('');
   }
 
   render();
@@ -81,27 +105,45 @@
     --state-color: var(--md-sys-color-on-surface);
   }
 
-  /* ── White circle holding the favicon (Chrome OS app style) ──────── */
+  /* ── White circle (Chrome OS app style) ─────────────────────────── */
+  /* Always clips its content to a circle via overflow:hidden.         */
   .shelf-icon__circle {
+    position: relative;
     width: 40px; height: 40px;
     border-radius: var(--md-sys-shape-corner-full);
     background: #FFFFFF;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: var(--md-sys-elevation-level1);
+    overflow: hidden;
     transition: transform 150ms cubic-bezier(0.2, 0, 0, 1),
                 box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
     flex-shrink: 0;
-    overflow: hidden;
   }
-  .shelf-icon:hover .shelf-icon__circle {
-    transform: scale(1.12);
-    box-shadow: var(--md-sys-elevation-level2);
-  }
+  .shelf-icon:hover .shelf-icon__circle { transform: scale(1.12); }
 
+  /* ── Per-item MD3 elevation ─────────────────────────────────────── */
+  .elev-0 { box-shadow: var(--md-sys-elevation-level0); }
+  .elev-1 { box-shadow: var(--md-sys-elevation-level1); }
+  .elev-2 { box-shadow: var(--md-sys-elevation-level2); }
+  .elev-3 { box-shadow: var(--md-sys-elevation-level3); }
+  /* Hover bumps each level up by one for tactile feedback */
+  .shelf-icon:hover .elev-0 { box-shadow: var(--md-sys-elevation-level1); }
+  .shelf-icon:hover .elev-1 { box-shadow: var(--md-sys-elevation-level2); }
+  .shelf-icon:hover .elev-2 { box-shadow: var(--md-sys-elevation-level3); }
+  .shelf-icon:hover .elev-3 { box-shadow: var(--md-sys-elevation-level4); }
+
+  /* ── Favicon fit modes ──────────────────────────────────────────── */
   .shelf-icon__favicon {
+    display: block;
+    pointer-events: none;
+  }
+  /* contain: small, centred, never touches the circle edge */
+  .fit-contain {
     width: 22px; height: 22px;
     object-fit: contain;
-    pointer-events: none;
-    display: block;
+  }
+  /* clip: fills the circle, clipped round by the circle's overflow:hidden */
+  .fit-clip {
+    width: 100%; height: 100%;
+    object-fit: cover;
   }
 </style>
