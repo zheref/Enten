@@ -132,7 +132,9 @@
   .md3-card {
     display: flex; flex-direction: column;
     height: 100%;
-    overflow: hidden;
+    /* No overflow:hidden here — it would clip the md-elevation shadow, which
+       md-elevated-card draws outside its box. The inner list scrolls instead,
+       and its 8px padding keeps rows clear of the card's rounded corners. */
     --md-elevated-card-container-shape: var(--md-sys-shape-corner-large);
   }
 

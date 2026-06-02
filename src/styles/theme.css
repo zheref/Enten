@@ -175,8 +175,17 @@
   --md-sys-elevation-level4: 0 6px 10px 4px rgba(0,0,0,.15), 0 2px 3px rgba(0,0,0,.3);
 }
 
-/* ── Reset ──────────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Reset ──────────────────────────────────────────────────────────────────
+   IMPORTANT: do NOT zero margin/padding with a universal `*` selector.
+   Material Web components apply their own padding via `:host` (e.g. a button's
+   leading/trailing space). A document-level `* { padding: 0 }` targets those
+   custom-element hosts and overrides their `:host` padding — buttons then lose
+   all internal spacing. So we only set box-sizing universally, and zero
+   margin/padding on standard elements via zero-specificity :where() (which
+   never matches md-* hosts and never out-prioritises component styles).        */
+*, *::before, *::after { box-sizing: border-box; }
+:where(body, h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, ul, ol, li) { margin: 0; }
+:where(ul, ol) { padding: 0; }
 
 html, body {
   width: 100%; height: 100%; overflow: hidden;

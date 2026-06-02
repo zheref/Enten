@@ -204,8 +204,9 @@ import '../styles/theme.css';
     -webkit-backdrop-filter: blur(24px) saturate(1.8);
     /* Border only on the top edge to match the rounded top corners */
     border-top: 1px solid var(--md-sys-color-outline-variant);
-    /* MD3 level-2 shadow — single definition */
-    box-shadow: var(--md-sys-elevation-level2);
+    /* Subtle MD3 level-1 shadow; the top border is the primary separator.
+       (Level 2 read as too heavy under the translucent bar.) */
+    box-shadow: var(--md-sys-elevation-level1);
   }
 
   .shelf__left {

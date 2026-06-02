@@ -121,7 +121,7 @@
   .md3-card {
     display: flex; flex-direction: column;
     height: 100%;
-    overflow: hidden;
+    /* No overflow:hidden — it would clip md-elevated-card's elevation shadow. */
     --md-elevated-card-container-shape: var(--md-sys-shape-corner-large);
   }
   .card-header {
