@@ -21,13 +21,20 @@
 
     <md-menu id="auth-menu" anchor="auth-btn" positioning="fixed"
              anchor-corner="start-start" menu-corner="end-start">
-      <div class="menu-header">
-        <span class="menu-header__title" id="auth-state">Not signed in</span>
-        <span class="menu-header__sub" id="auth-sub">Connect your Google account</span>
-      </div>
+      <!-- Identity row (non-interactive) -->
+      <md-menu-item class="account-row" disabled keep-open>
+        <div slot="headline" id="auth-state">Not signed in</div>
+        <div slot="supporting-text" id="auth-sub">Connect your Google account</div>
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+        </svg>
+      </md-menu-item>
+
+      <md-divider></md-divider>
+
       <md-menu-item id="auth-action" data-action="signin">
         <div slot="headline" id="auth-action-label">Sign in with Google</div>
-        <svg slot="start" id="auth-action-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg slot="start" id="auth-action-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M11 7 9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
         </svg>
       </md-menu-item>
@@ -45,29 +52,20 @@
              anchor-corner="start-start" menu-corner="end-start">
       <md-menu-item data-mode="light">
         <div slot="headline">Light</div>
-        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0zM7.05 18.36l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.99.99 0 0 0-1.41 0z"/>
-        </svg>
-        <svg slot="end" class="check" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
         </svg>
       </md-menu-item>
       <md-menu-item data-mode="auto">
         <div slot="headline">Automatic</div>
-        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
-        </svg>
-        <svg slot="end" class="check" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
         </svg>
       </md-menu-item>
       <md-menu-item data-mode="dark">
         <div slot="headline">Dark</div>
-        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
-        </svg>
-        <svg slot="end" class="check" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
         </svg>
       </md-menu-item>
     </md-menu>
@@ -113,9 +111,9 @@
       root.classList.remove('dark-scheme');
     }
     setButtonGlyph(mode);
-    // Mark the active menu item (shows its trailing check)
+    // Canon MD3 selected state: fills the active item with secondary-container.
     document.querySelectorAll('#theme-menu md-menu-item').forEach(item => {
-      item.classList.toggle('active', (item as HTMLElement).dataset.mode === mode);
+      (item as any).selected = (item as HTMLElement).dataset.mode === mode;
     });
   }
 
@@ -244,35 +242,23 @@
     height: 100%;
   }
 
-  /* Borderless theme toggle (icon button) + anchored menu */
+  /* Borderless theme toggle (icon button) + anchored menu.
+     Active mode is shown via the canon md-menu-item[selected] state
+     (secondary-container fill) — no custom check/colour needed. */
   .theme-toggle { position: relative; display: flex; align-items: center; }
   #theme-btn { color: var(--md-sys-color-on-surface-variant); }
-
-  /* Trailing check is only visible on the active mode */
-  #theme-menu .check { visibility: hidden; color: var(--md-sys-color-primary); }
-  #theme-menu md-menu-item.active .check { visibility: visible; }
-  #theme-menu md-menu-item.active { --md-menu-item-label-text-color: var(--md-sys-color-primary); }
 
   /* Borderless account button + anchored account menu */
   .auth-control { position: relative; display: flex; align-items: center; }
   #auth-btn { color: var(--md-sys-color-on-surface-variant); }
 
-  /* Non-interactive header row inside the account menu */
-  #auth-menu .menu-header {
-    display: flex; flex-direction: column; gap: 2px;
-    padding: 12px 16px 8px;
-    max-width: 260px;
-  }
-  #auth-menu .menu-header__title {
-    font: var(--md-sys-typescale-title-small);
-    letter-spacing: var(--md-sys-typescale-title-small-tracking);
-    color: var(--md-sys-color-on-surface);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  #auth-menu .menu-header__sub {
-    font: var(--md-sys-typescale-body-small);
-    letter-spacing: var(--md-sys-typescale-body-small-tracking);
-    color: var(--md-sys-color-on-surface-variant);
+  /* Identity row is a disabled md-menu-item; keep its text legible (the
+     default disabled 38% opacity is too faint to read an email address). */
+  #auth-menu .account-row {
+    opacity: 1;
+    --md-menu-item-label-text-color: var(--md-sys-color-on-surface);
+    --md-menu-item-supporting-text-color: var(--md-sys-color-on-surface-variant);
+    --md-menu-item-leading-icon-color: var(--md-sys-color-on-surface-variant);
   }
 
   /* ── Clock ──────────────────────────────────────────────────────── */
