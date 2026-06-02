@@ -13,4 +13,10 @@ export default defineConfig({
   // Astro copies everything in public/ to dist/ verbatim — that is where
   // manifest.json, background.js, and images live.
   publicDir: 'public',
+
+  build: {
+    // Chrome forbids directories whose names start with "_".
+    // Rename Astro's default "_astro" asset folder to "assets".
+    assets: 'assets',
+  },
 });
