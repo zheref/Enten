@@ -17,152 +17,210 @@ import '../styles/theme.css';
 </head>
 <body>
 
-  <!-- ── Full-bleed wallpaper ─────────────────────────────────────── -->
+  <!-- ── Full-bleed wallpaper ──────────────────────────────────────── -->
   <div class="wallpaper" aria-hidden="true">
     <img src="/images/naruto-swift.png" alt="" />
     <div class="wallpaper__scrim"></div>
   </div>
 
-  <!-- ── Desktop area (above the shelf) ──────────────────────────── -->
+  <!-- ── Desktop (full viewport — shelf floats on top) ─────────────── -->
   <main class="desktop" id="desktop">
-    <div class="desktop__widgets">
+
+    <div class="widget-wrapper" id="widget-calendar" data-widget="calendar">
       <CalendarWidget />
+    </div>
+
+    <div class="widget-wrapper" id="widget-email" data-widget="email">
       <EmailWidget />
     </div>
+
   </main>
 
-  <!-- ── Chrome OS–style Shelf ────────────────────────────────────── -->
+  <!-- ── Floating Shelf ───────────────────────────────────────────── -->
   <!--
-    Spec: fixed bottom bar, surfaceContainer + blur, 56dp tall.
-    Left side: launcher FAB + pinned app shortcuts.
-    Right side: status area (auth · theme toggle · clock).
+    Floating pill: not touching window edges, rounded corners.
+    Left:  launcher FAB · divider · pinned app icons
+    Right: status area (auth · theme toggle · clock)
   -->
   <nav class="shelf" aria-label="Shelf">
-
-    <!-- Left: launcher + shortcuts -->
     <div class="shelf__left">
-      <!-- MD3 Small FAB — launcher button -->
       <button
         class="launcher-fab md3-state-layer"
         aria-label="Show all apps"
         title="All apps"
-        id="launcher-btn"
       >
-        <!-- Grid / launcher icon -->
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
         </svg>
       </button>
-
-      <!-- Divider -->
       <div class="shelf__divider" aria-hidden="true"></div>
-
-      <!-- Pinned app icons -->
       <Shortcuts />
     </div>
-
-    <!-- Right: status area -->
     <div class="shelf__right">
       <StatusArea />
     </div>
-
   </nav>
 
 </body>
 </html>
 
+<!-- ── Widget drag & restore ──────────────────────────────────────── -->
+<script>
+  import { storageGet, storageSet } from '../lib/storage.js';
+
+  const SHELF_CLEARANCE = 56 + 12 + 16; // shelf height + bottom margin + safety
+  const CARD_W = 380;
+  const CARD_H = 480;
+
+  function clamp(val: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function initDrag(el: HTMLElement, key: string) {
+    const header = el.querySelector<HTMLElement>('[data-drag-handle]');
+    if (!header) return;
+    header.style.cursor = 'grab';
+
+    let dragging = false, startPX = 0, startPY = 0, startLeft = 0, startTop = 0;
+
+    header.addEventListener('pointerdown', (e: PointerEvent) => {
+      dragging = true;
+      startPX = e.clientX;
+      startPY = e.clientY;
+      startLeft = el.offsetLeft;
+      startTop  = el.offsetTop;
+      el.setPointerCapture(e.pointerId);
+      header.style.cursor = 'grabbing';
+      el.style.transition = 'none';
+      el.style.zIndex = '50';
+      e.preventDefault();
+    });
+
+    el.addEventListener('pointermove', (e: PointerEvent) => {
+      if (!dragging) return;
+      const desktop = document.getElementById('desktop')!;
+      const maxL = desktop.offsetWidth  - el.offsetWidth;
+      const maxT = desktop.offsetHeight - el.offsetHeight - SHELF_CLEARANCE;
+
+      el.style.left = clamp(startLeft + e.clientX - startPX, 0, maxL) + 'px';
+      el.style.top  = clamp(startTop  + e.clientY - startPY, 0, Math.max(0, maxT)) + 'px';
+    });
+
+    const onUp = async () => {
+      if (!dragging) return;
+      dragging = false;
+      header.style.cursor = 'grab';
+      el.style.transition = '';
+      el.style.zIndex = '';
+      const { widgetPositions = {} } = await storageGet('widgetPositions') as any;
+      widgetPositions[key] = { left: el.offsetLeft, top: el.offsetTop };
+      await storageSet({ widgetPositions });
+    };
+    el.addEventListener('pointerup',    onUp);
+    el.addEventListener('pointercancel', onUp);
+  }
+
+  async function init() {
+    const desktop  = document.getElementById('desktop')!;
+    const calEl    = document.getElementById('widget-calendar') as HTMLElement;
+    const emailEl  = document.getElementById('widget-email')    as HTMLElement;
+    if (!calEl || !emailEl) return;
+
+    const { widgetPositions = {} } = await storageGet('widgetPositions') as any;
+    const dw = desktop.offsetWidth;
+    const dh = desktop.offsetHeight;
+    const defaultTop = Math.max(16, dh - CARD_H - SHELF_CLEARANCE);
+
+    const cal  = (widgetPositions as any).calendar ?? { left: 24,               top: defaultTop };
+    const eml  = (widgetPositions as any).email    ?? { left: dw - CARD_W - 24, top: defaultTop };
+
+    calEl.style.left  = `${clamp(cal.left, 0, dw - CARD_W)}px`;
+    calEl.style.top   = `${clamp(cal.top,  0, dh - CARD_H)}px`;
+    emailEl.style.left = `${clamp(eml.left, 0, dw - CARD_W)}px`;
+    emailEl.style.top  = `${clamp(eml.top,  0, dh - CARD_H)}px`;
+
+    initDrag(calEl,   'calendar');
+    initDrag(emailEl, 'email');
+  }
+
+  init();
+</script>
+
 <style>
-  /* ── Wallpaper ──────────────────────────────────────────────────── */
+  /* ── Wallpaper ─────────────────────────────────────────────────────── */
   .wallpaper {
     position: fixed; inset: 0; z-index: 0;
     background: var(--md-sys-color-background);
   }
   .wallpaper img {
     width: 100%; height: 100%;
-    object-fit: cover; object-position: center;
-    display: block;
+    object-fit: cover; object-position: center; display: block;
   }
-  /* Subtle scrim so widgets stay legible over any image */
   .wallpaper__scrim {
     position: absolute; inset: 0;
     background: var(--wallpaper-scrim);
   }
 
-  /* ── Desktop content area ───────────────────────────────────────── */
-  /* Takes up all space above the shelf (56dp) */
+  /* ── Desktop ─────────────────────────────────────────────────────── */
   .desktop {
-    position: fixed;
-    inset: 0 0 56px;
+    position: fixed; inset: 0;
     z-index: 10;
-    overflow: hidden;
-    display: flex;
-    align-items: flex-end;   /* widgets sit near the bottom of the desktop */
-    justify-content: center;
-    padding: 16px 24px 24px;
-    pointer-events: none;    /* let clicks pass through empty desktop areas */
+    /* pointer-events off on the container so clicks pass through to wallpaper */
+    pointer-events: none;
   }
 
-  /* Widgets row */
-  .desktop__widgets {
+  /* ── Widget wrappers (absolutely positioned, draggable) ──────────── */
+  .widget-wrapper {
+    position: absolute;
+    width: 380px;
+    height: 480px;
     pointer-events: auto;
-    display: flex;
-    gap: 16px;
-    width: 100%;
-    max-width: 1280px;
-    height: clamp(340px, 50vh, 520px);
+    /* initial offscreen — JS sets real position immediately */
+    left: -9999px; top: -9999px;
   }
 
-  .desktop__widgets > * {
-    flex: 1;
-    min-width: 0;
-  }
-
-  /* ── Shelf ──────────────────────────────────────────────────────── */
+  /* ── Floating shelf ─────────────────────────────────────────────── */
   /*
-   * Fixed to the bottom. 56dp tall.
-   * Background: semi-transparent surfaceContainer + backdrop blur —
-   * same visual language as Chrome OS's shelf / Android 12's navigation bar.
+   * Not touching window edges: left/right/bottom margins.
+   * Rounded with MD3 shape-corner-extra-large (28dp).
+   * backdrop-filter for the glass look.
+   * Elevation-level2 shadow (single definition — no backdrop double).
    */
   .shelf {
-    position: fixed; bottom: 0; left: 0; right: 0;
+    position: fixed;
+    bottom: 12px;
+    left: 16px;
+    right: 16px;
     z-index: 20;
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 8px;
+    border-radius: var(--md-sys-shape-corner-extra-large);
     background: var(--shelf-bg);
-    backdrop-filter: blur(20px) saturate(1.8);
-    -webkit-backdrop-filter: blur(20px) saturate(1.8);
-    /* Subtle top border as separator */
-    border-top: 1px solid var(--md-sys-color-outline-variant);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    /* MD3 level-2 shadow — correct single definition */
+    box-shadow: var(--md-sys-elevation-level2);
   }
 
   .shelf__left {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 100%;
+    display: flex; align-items: center; gap: 4px; height: 100%;
   }
-
   .shelf__right {
-    display: flex;
-    align-items: center;
-    height: 100%;
+    display: flex; align-items: center; height: 100%;
   }
 
-  /* Vertical divider between FAB and shortcuts */
   .shelf__divider {
-    width: 1px;
-    height: 28px;
+    width: 1px; height: 28px;
     background: var(--md-sys-color-outline-variant);
-    margin: 0 4px;
-    flex-shrink: 0;
+    margin: 0 6px; flex-shrink: 0;
   }
 
-  /* ── MD3 Small FAB (launcher) ───────────────────────────────────── */
-  /* spec: 40dp, shape=medium (12dp), surfaceContainerHigh bg,         */
-  /*       primary tint icon, elevation-3                               */
+  /* ── MD3 Small FAB — launcher ────────────────────────────────────── */
+  /* spec: 40dp, shape=medium (12dp), surfaceContainerHigh, primary icon */
   .launcher-fab {
     display: flex; align-items: center; justify-content: center;
     width: 40px; height: 40px;
@@ -170,11 +228,12 @@ import '../styles/theme.css';
     border: none;
     background: var(--md-sys-color-surface-container-high);
     color: var(--md-sys-color-primary);
-    box-shadow: var(--md-sys-elevation-level3);
     cursor: pointer;
     flex-shrink: 0;
     --state-color: var(--md-sys-color-primary);
-    transition: box-shadow 200ms;
+    /* FAB gets its own elevation-3 — shelf shadow is separate */
+    box-shadow: var(--md-sys-elevation-level3);
+    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
   }
   .launcher-fab:hover { box-shadow: var(--md-sys-elevation-level4); }
 </style>

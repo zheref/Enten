@@ -1,13 +1,20 @@
 ---
 /**
  * CalendarWidget — MD3 Elevated Card, desktop floating style.
- * Glass-surface: semi-transparent surfaceContainerLow + backdrop blur.
- * Contains a card header + 2-line list of upcoming events.
+ *
+ * Shadow rules (MD3):
+ *   Light scheme → surfaceContainerLow + elevation-level1 box-shadow
+ *   Dark scheme  → surfaceContainerHigh (tonal elevation, no shadow)
+ *   The card header acts as the drag handle ([data-drag-handle]).
+ *
+ * Empty state: shown when no cache AND API fails, with a Sign-in CTA.
  */
 ---
 
-<div class="md3-card--elevated">
-  <div class="card-header">
+<div class="md3-card">
+
+  <!-- Drag handle + header ────────────────────────────────────────── -->
+  <div class="card-header" data-drag-handle>
     <span class="card-header__icon" aria-hidden="true">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/>
@@ -21,16 +28,20 @@
     </button>
   </div>
 
+  <!-- List / empty state ──────────────────────────────────────────── -->
   <ul class="md3-list" id="event-list" role="list">
-    <li class="list-item--placeholder">Loading…</li>
+    <li class="placeholder">Loading…</li>
   </ul>
+
 </div>
 
 <script>
   import { getUpcomingEvents } from '../lib/google.js';
   import { storageGet, storageSet } from '../lib/storage.js';
 
-  function fmtTime(iso) {
+  const listEl = () => document.getElementById('event-list');
+
+  function fmtTime(iso: string) {
     try {
       return new Date(iso).toLocaleString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric',
@@ -39,23 +50,22 @@
     } catch { return iso; }
   }
 
-  function render(events) {
-    const list = document.getElementById('event-list');
-    if (!list) return;
+  function renderEvents(events: any[]) {
+    const list = listEl(); if (!list) return;
     if (!events.length) {
-      list.innerHTML = '<li class="list-item--placeholder">No upcoming events</li>';
+      list.innerHTML = '<li class="placeholder">No upcoming events</li>';
       return;
     }
-    list.innerHTML = events.map(e => `
-      <li class="md3-list-item md3-list-item--two-line md3-state-layer">
-        <div class="list-item__leading list-item__leading--primary" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
+    list.innerHTML = events.map((e: any) => `
+      <li class="md3-list-item md3-state-layer">
+        <div class="leading leading--primary" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm.01 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
           </svg>
         </div>
-        <div class="list-item__content">
-          <span class="list-item__headline">${e.title}</span>
-          <span class="list-item__supporting">
+        <div class="item-content">
+          <span class="item-headline">${e.title}</span>
+          <span class="item-supporting">
             ${e.allDay ? 'All day' : fmtTime(e.start)}${e.location ? ` · ${e.location}` : ''}
           </span>
         </div>
@@ -63,20 +73,51 @@
     `).join('');
   }
 
+  function renderAuthCTA() {
+    const list = listEl(); if (!list) return;
+    list.innerHTML = `
+      <li class="empty-state">
+        <div class="empty-state__icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/>
+          </svg>
+        </div>
+        <p class="empty-state__headline">No calendar connected</p>
+        <p class="empty-state__body">Sign in with Google to see your upcoming events here.</p>
+        <button class="md3-btn--filled" id="cal-signin">Sign in with Google</button>
+      </li>
+    `;
+    document.getElementById('cal-signin')?.addEventListener('click', triggerAuth);
+  }
+
+  async function triggerAuth() {
+    if (typeof chrome === 'undefined' || !chrome?.identity) return;
+    try {
+      const token = await new Promise<string>((res, rej) =>
+        chrome.identity.getAuthToken({ interactive: true }, (t: string) =>
+          chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(t)
+        )
+      );
+      const profile = await fetch(
+        'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => r.json());
+      await storageSet({ userEmail: profile.email });
+      location.reload();
+    } catch (e) { console.error('[SergioSwift] Auth', e); }
+  }
+
   async function load(force = false) {
-    const { cachedEvents } = await storageGet('cachedEvents');
-    if (cachedEvents) render(cachedEvents);
+    const { cachedEvents } = await storageGet('cachedEvents') as any;
+    if (cachedEvents) renderEvents(cachedEvents);
     if (!force && cachedEvents) return;
     try {
       const events = await getUpcomingEvents(8);
       await storageSet({ cachedEvents: events });
-      render(events);
-    } catch (err) {
-      const list = document.getElementById('event-list');
-      const cached = await storageGet('cachedEvents').then(r => r.cachedEvents);
-      if (list && !cached) {
-        list.innerHTML = `<li class="list-item--placeholder list-item--error">⚠ ${err.message}</li>`;
-      }
+      renderEvents(events);
+    } catch {
+      const cached = await storageGet('cachedEvents').then((r: any) => r.cachedEvents);
+      if (!cached) renderAuthCTA();
     }
   }
 
@@ -85,26 +126,32 @@
 </script>
 
 <style>
-  /* ── Floating desktop card — glass surface treatment ────────────── */
-  .md3-card--elevated {
+  /* ── MD3 Elevated Card ─────────────────────────────────────────────
+     Light: surfaceContainerLow + single elevation-level1 shadow.
+     Dark:  surfaceContainerHigh (tonal elevation) + no shadow.
+     No backdrop-filter — solid surface avoids perceptual doubling.   */
+  .md3-card {
     display: flex; flex-direction: column;
-    background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 85%, transparent);
-    backdrop-filter: blur(16px) saturate(1.6);
-    -webkit-backdrop-filter: blur(16px) saturate(1.6);
-    border-radius: var(--md-sys-shape-corner-large);
-    box-shadow: var(--md-sys-elevation-level2);
-    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 60%, transparent);
-    padding: 12px 0 8px;
     height: 100%;
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-corner-large);
+    /* Correct MD3 level-1: single box-shadow declaration, two layers  */
+    box-shadow: var(--md-sys-elevation-level1);
     overflow: hidden;
   }
+  /* Dark scheme: tonal elevation, no shadow */
+  :global(.dark-scheme) .md3-card {
+    background: var(--md-sys-color-surface-container-high);
+    box-shadow: none;
+  }
 
-  /* Card header */
+  /* Card header — also the drag handle */
   .card-header {
     display: flex; align-items: center; gap: 8px;
-    padding: 0 16px 10px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
-    margin-bottom: 4px;
+    user-select: none;     /* prevent text selection while dragging */
+    flex-shrink: 0;
   }
   .card-header__icon { color: var(--md-sys-color-primary); display: flex; }
   .card-header__title {
@@ -114,7 +161,7 @@
     color: var(--md-sys-color-on-surface);
   }
 
-  /* MD3 Icon button */
+  /* MD3 Icon button — 40dp tap target */
   .icon-btn {
     display: flex; align-items: center; justify-content: center;
     width: 40px; height: 40px;
@@ -133,50 +180,83 @@
     overflow-y: auto; flex: 1;
   }
 
-  /* MD3 Two-line list item — spec: h=72dp */
+  /* MD3 Two-line list item — 72dp min-height */
   .md3-list-item {
     display: flex; align-items: center; gap: 16px;
-    min-height: 64px; padding: 8px 16px;
+    min-height: 72px; padding: 8px 16px;
     color: inherit;
     --state-color: var(--md-sys-color-on-surface);
   }
 
-  /* 40dp leading avatar container */
-  .list-item__leading {
+  /* 40dp leading avatar */
+  .leading {
     flex-shrink: 0;
     width: 40px; height: 40px;
     border-radius: var(--md-sys-shape-corner-full);
     display: flex; align-items: center; justify-content: center;
   }
-  .list-item__leading--primary {
+  .leading--primary {
     background: var(--md-sys-color-primary-container);
     color: var(--md-sys-color-on-primary-container);
   }
-  .list-item__leading--secondary {
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-  }
 
-  .list-item__content {
-    flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0;
-  }
-  .list-item__headline {
+  .item-content { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .item-headline {
     font: var(--md-sys-typescale-body-large);
     letter-spacing: var(--md-sys-typescale-body-large-tracking);
     color: var(--md-sys-color-on-surface);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .list-item__supporting {
+  .item-supporting {
     font: var(--md-sys-typescale-body-medium);
     letter-spacing: var(--md-sys-typescale-body-medium-tracking);
     color: var(--md-sys-color-on-surface-variant);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  .list-item--placeholder {
+  /* ── MD3 Empty state ────────────────────────────────────────────── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 8px;
+    padding: 32px 24px; flex: 1; text-align: center;
+  }
+  .empty-state__icon {
+    color: var(--md-sys-color-on-surface-variant);
+    margin-bottom: 4px;
+  }
+  .empty-state__headline {
+    font: var(--md-sys-typescale-title-medium);
+    letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+    color: var(--md-sys-color-on-surface);
+  }
+  .empty-state__body {
+    font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+    max-width: 220px;
+  }
+
+  /* MD3 Filled Button — sign-in CTA */
+  /* spec: h=40dp, shape=full, primary bg, onPrimary text */
+  .md3-btn--filled {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 40px; padding: 0 24px;
+    margin-top: 8px;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: none;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font: var(--md-sys-typescale-label-large);
+    letter-spacing: var(--md-sys-typescale-label-large-tracking);
+    cursor: pointer;
+    transition: box-shadow 200ms;
+    box-shadow: var(--md-sys-elevation-level1);
+  }
+  .md3-btn--filled:hover { box-shadow: var(--md-sys-elevation-level2); }
+
+  .placeholder {
     padding: 16px;
     font: var(--md-sys-typescale-body-medium);
     color: var(--md-sys-color-on-surface-variant);
   }
-  .list-item--error { color: var(--md-sys-color-error); }
 </style>

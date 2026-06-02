@@ -1,14 +1,15 @@
 ---
 /**
  * EmailWidget — MD3 Elevated Card, desktop floating style.
- * Glass-surface: semi-transparent surfaceContainerLow + backdrop blur.
- * Contains a card header + 3-line list of inbox messages.
- * Unread indicator: primary-colored headline + leading avatar.
+ * Same shadow/surface rules as CalendarWidget.
+ * Card header = drag handle ([data-drag-handle]).
+ * Empty state with Sign-in CTA when auth is needed.
  */
 ---
 
-<div class="md3-card--elevated">
-  <div class="card-header">
+<div class="md3-card">
+
+  <div class="card-header" data-drag-handle>
     <span class="card-header__icon" aria-hidden="true">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
@@ -23,56 +24,89 @@
   </div>
 
   <ul class="md3-list" id="email-list" role="list">
-    <li class="list-item--placeholder">Loading…</li>
+    <li class="placeholder">Loading…</li>
   </ul>
+
 </div>
 
 <script>
   import { getRecentEmails } from '../lib/google.js';
   import { storageGet, storageSet } from '../lib/storage.js';
 
-  function displayName(from) {
+  const listEl = () => document.getElementById('email-list');
+
+  function displayName(from: string) {
     const m = from.match(/^"?([^"<]+)"?\s*(?:<.*>)?$/);
     return (m ? m[1] : from).trim();
   }
-  function initial(from) { return displayName(from).charAt(0).toUpperCase() || '?'; }
+  const initial = (from: string) => displayName(from).charAt(0).toUpperCase() || '?';
 
-  function render(emails) {
-    const list = document.getElementById('email-list');
-    if (!list) return;
+  function renderEmails(emails: any[]) {
+    const list = listEl(); if (!list) return;
     if (!emails.length) {
-      list.innerHTML = '<li class="list-item--placeholder">Inbox is empty</li>';
+      list.innerHTML = '<li class="placeholder">Inbox is empty</li>';
       return;
     }
-    list.innerHTML = emails.map(e => `
-      <li class="md3-list-item md3-list-item--three-line md3-state-layer ${e.unread ? 'unread' : ''}">
-        <div class="list-item__leading ${e.unread ? 'list-item__leading--primary' : 'list-item__leading--secondary'}" aria-hidden="true">
+    list.innerHTML = emails.map((e: any) => `
+      <li class="md3-list-item md3-state-layer ${e.unread ? 'unread' : ''}">
+        <div class="leading ${e.unread ? 'leading--primary' : 'leading--secondary'}" aria-hidden="true">
           ${initial(e.from)}
         </div>
-        <div class="list-item__content">
-          <span class="list-item__overline">${displayName(e.from)}</span>
-          <span class="list-item__headline">${e.subject}</span>
-          <span class="list-item__supporting">${e.snippet}</span>
+        <div class="item-content">
+          <span class="item-overline">${displayName(e.from)}</span>
+          <span class="item-headline">${e.subject}</span>
+          <span class="item-supporting">${e.snippet}</span>
         </div>
-        ${e.unread ? '<span class="unread-badge" aria-label="Unread"></span>' : ''}
+        ${e.unread ? '<span class="unread-dot" aria-label="Unread"></span>' : ''}
       </li>
     `).join('');
   }
 
+  function renderAuthCTA() {
+    const list = listEl(); if (!list) return;
+    list.innerHTML = `
+      <li class="empty-state">
+        <div class="empty-state__icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+          </svg>
+        </div>
+        <p class="empty-state__headline">No inbox connected</p>
+        <p class="empty-state__body">Sign in with Google to preview your latest messages here.</p>
+        <button class="md3-btn--filled" id="email-signin">Sign in with Google</button>
+      </li>
+    `;
+    document.getElementById('email-signin')?.addEventListener('click', triggerAuth);
+  }
+
+  async function triggerAuth() {
+    if (typeof chrome === 'undefined' || !chrome?.identity) return;
+    try {
+      const token = await new Promise<string>((res, rej) =>
+        chrome.identity.getAuthToken({ interactive: true }, (t: string) =>
+          chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(t)
+        )
+      );
+      const profile = await fetch(
+        'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => r.json());
+      await storageSet({ userEmail: profile.email });
+      location.reload();
+    } catch (e) { console.error('[SergioSwift] Auth', e); }
+  }
+
   async function load(force = false) {
-    const { cachedEmails } = await storageGet('cachedEmails');
-    if (cachedEmails) render(cachedEmails);
+    const { cachedEmails } = await storageGet('cachedEmails') as any;
+    if (cachedEmails) renderEmails(cachedEmails);
     if (!force && cachedEmails) return;
     try {
       const emails = await getRecentEmails(8);
       await storageSet({ cachedEmails: emails });
-      render(emails);
-    } catch (err) {
-      const list = document.getElementById('email-list');
-      const cached = await storageGet('cachedEmails').then(r => r.cachedEmails);
-      if (list && !cached) {
-        list.innerHTML = `<li class="list-item--placeholder list-item--error">⚠ ${err.message}</li>`;
-      }
+      renderEmails(emails);
+    } catch {
+      const cached = await storageGet('cachedEmails').then((r: any) => r.cachedEmails);
+      if (!cached) renderAuthCTA();
     }
   }
 
@@ -81,25 +115,27 @@
 </script>
 
 <style>
-  /* Glass surface card — same treatment as CalendarWidget */
-  .md3-card--elevated {
+  /* ── MD3 Elevated Card ──────────────────────────────────────────────
+     Single shadow definition, no backdrop-filter (avoids doubling).
+     Dark mode overrides to tonal surface + no shadow.               */
+  .md3-card {
     display: flex; flex-direction: column;
-    background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 85%, transparent);
-    backdrop-filter: blur(16px) saturate(1.6);
-    -webkit-backdrop-filter: blur(16px) saturate(1.6);
-    border-radius: var(--md-sys-shape-corner-large);
-    box-shadow: var(--md-sys-elevation-level2);
-    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 60%, transparent);
-    padding: 12px 0 8px;
     height: 100%;
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-corner-large);
+    box-shadow: var(--md-sys-elevation-level1);
     overflow: hidden;
+  }
+  :global(.dark-scheme) .md3-card {
+    background: var(--md-sys-color-surface-container-high);
+    box-shadow: none;
   }
 
   .card-header {
     display: flex; align-items: center; gap: 8px;
-    padding: 0 16px 10px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
-    margin-bottom: 4px;
+    user-select: none; flex-shrink: 0;
   }
   .card-header__icon { color: var(--md-sys-color-primary); display: flex; }
   .card-header__title {
@@ -119,13 +155,9 @@
   }
   .icon-btn:hover { color: var(--md-sys-color-on-surface); }
 
-  .md3-list {
-    list-style: none;
-    display: flex; flex-direction: column;
-    overflow-y: auto; flex: 1;
-  }
+  .md3-list { list-style: none; display: flex; flex-direction: column; overflow-y: auto; flex: 1; }
 
-  /* MD3 Three-line list item — spec: h=88dp */
+  /* MD3 Three-line list item — 88dp min-height */
   .md3-list-item {
     display: flex; align-items: flex-start; gap: 16px;
     min-height: 80px; padding: 10px 16px;
@@ -133,68 +165,83 @@
     --state-color: var(--md-sys-color-on-surface);
   }
 
-  /* Monogram avatar */
-  .list-item__leading {
-    flex-shrink: 0;
-    width: 40px; height: 40px; margin-top: 2px;
+  /* 40dp monogram avatar */
+  .leading {
+    flex-shrink: 0; width: 40px; height: 40px; margin-top: 2px;
     border-radius: var(--md-sys-shape-corner-full);
     display: flex; align-items: center; justify-content: center;
     font: var(--md-sys-typescale-title-small);
   }
-  .list-item__leading--primary {
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-  }
-  .list-item__leading--secondary {
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-  }
+  .leading--primary  { background: var(--md-sys-color-primary-container);   color: var(--md-sys-color-on-primary-container); }
+  .leading--secondary{ background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 
-  .list-item__content {
-    flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0;
-  }
+  .item-content { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
-  /* Overline — sender name */
-  .list-item__overline {
+  .item-overline {
     font: var(--md-sys-typescale-label-small);
     letter-spacing: var(--md-sys-typescale-label-small-tracking);
     color: var(--md-sys-color-on-surface-variant);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-
-  /* Headline — subject */
-  .list-item__headline {
+  .item-headline {
     font: var(--md-sys-typescale-body-large);
     letter-spacing: var(--md-sys-typescale-body-large-tracking);
     color: var(--md-sys-color-on-surface);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .md3-list-item.unread .list-item__headline {
-    color: var(--md-sys-color-primary);
-    font-weight: 500;
-  }
-
-  /* Supporting — snippet */
-  .list-item__supporting {
+  .unread .item-headline { color: var(--md-sys-color-primary); font-weight: 500; }
+  .item-supporting {
     font: var(--md-sys-typescale-body-medium);
     letter-spacing: var(--md-sys-typescale-body-medium-tracking);
     color: var(--md-sys-color-on-surface-variant);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* Unread indicator dot */
-  .unread-badge {
-    flex-shrink: 0;
-    width: 8px; height: 8px;
+  .unread-dot {
+    flex-shrink: 0; width: 8px; height: 8px;
     border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-primary);
     align-self: center; margin-left: auto;
   }
 
-  .list-item--placeholder {
+  /* ── MD3 Empty state ────────────────────────────────────────────── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 8px;
+    padding: 32px 24px; flex: 1; text-align: center;
+    list-style: none;
+  }
+  .empty-state__icon { color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; }
+  .empty-state__headline {
+    font: var(--md-sys-typescale-title-medium);
+    letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+    color: var(--md-sys-color-on-surface);
+  }
+  .empty-state__body {
+    font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+    max-width: 220px;
+  }
+
+  /* MD3 Filled Button */
+  .md3-btn--filled {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 40px; padding: 0 24px; margin-top: 8px;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: none;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font: var(--md-sys-typescale-label-large);
+    letter-spacing: var(--md-sys-typescale-label-large-tracking);
+    cursor: pointer; transition: box-shadow 200ms;
+    box-shadow: var(--md-sys-elevation-level1);
+  }
+  .md3-btn--filled:hover { box-shadow: var(--md-sys-elevation-level2); }
+
+  .placeholder {
     padding: 16px;
     font: var(--md-sys-typescale-body-medium);
     color: var(--md-sys-color-on-surface-variant);
   }
-  .list-item--error { color: var(--md-sys-color-error); }
 </style>
