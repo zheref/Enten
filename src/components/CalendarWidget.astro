@@ -173,17 +173,19 @@
   }
   .icon-btn:hover { color: var(--md-sys-color-on-surface); }
 
-  /* MD3 List */
+  /* MD3 List — inset with padding so items don't touch card edges */
   .md3-list {
     list-style: none;
-    display: flex; flex-direction: column;
+    display: flex; flex-direction: column; gap: 2px;
     overflow-y: auto; flex: 1;
+    padding: 8px;
   }
 
-  /* MD3 Two-line list item — 72dp min-height */
+  /* MD3 list item (nav-drawer style: inset + rounded state layer) */
   .md3-list-item {
     display: flex; align-items: center; gap: 16px;
-    min-height: 72px; padding: 8px 16px;
+    min-height: 64px; padding: 8px 12px;
+    border-radius: var(--md-sys-shape-corner-large);
     color: inherit;
     --state-color: var(--md-sys-color-on-surface);
   }
@@ -254,9 +256,13 @@
   }
   .md3-btn--filled:hover { box-shadow: var(--md-sys-elevation-level2); }
 
+  /* Centered MD3 status message (loading / empty list) */
   .placeholder {
-    padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex: 1; min-height: 120px;
+    padding: 24px; text-align: center;
     font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
     color: var(--md-sys-color-on-surface-variant);
   }
 </style>

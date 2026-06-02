@@ -68,7 +68,7 @@ import '../styles/theme.css';
 <script>
   import { storageGet, storageSet } from '../lib/storage.js';
 
-  const SHELF_CLEARANCE = 56 + 12 + 16; // shelf height + bottom margin + safety
+  const SHELF_CLEARANCE = 56 + 16; // shelf height + safety gap
   const CARD_W = 380;
   const CARD_H = 480;
 
@@ -179,30 +179,33 @@ import '../styles/theme.css';
     left: -9999px; top: -9999px;
   }
 
-  /* ── Floating shelf ─────────────────────────────────────────────── */
+  /* ── Bottom shelf ───────────────────────────────────────────────── */
   /*
-   * Not touching window edges: left/right/bottom margins.
-   * Rounded with MD3 shape-corner-extra-large (28dp).
+   * Anchored to the bottom edge, full width.
+   * Rounded only on the TOP corners (left + right); bottom corners square
+   * so it meets the window's bottom edge cleanly (Chrome OS shelf style).
    * backdrop-filter for the glass look.
-   * Elevation-level2 shadow (single definition — no backdrop double).
+   * Single elevation-level2 shadow.
    */
   .shelf {
     position: fixed;
-    bottom: 12px;
-    left: 16px;
-    right: 16px;
+    bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 20;
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 8px;
-    border-radius: var(--md-sys-shape-corner-extra-large);
+    padding: 0 12px;
+    border-radius: var(--md-sys-shape-corner-extra-large)
+                   var(--md-sys-shape-corner-extra-large) 0 0;
     background: var(--shelf-bg);
     backdrop-filter: blur(24px) saturate(1.8);
     -webkit-backdrop-filter: blur(24px) saturate(1.8);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    /* MD3 level-2 shadow — correct single definition */
+    /* Border only on the top edge to match the rounded top corners */
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    /* MD3 level-2 shadow — single definition */
     box-shadow: var(--md-sys-elevation-level2);
   }
 

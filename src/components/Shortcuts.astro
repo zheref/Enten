@@ -2,12 +2,9 @@
 /**
  * Shortcuts — Chrome OS–style circular app icons in the shelf.
  *
- * Each icon is a 40×40 dp circle using MD3 container colors,
- * with the app emoji centred inside. Hovering reveals a tooltip
- * above (Chrome OS shelf tooltip style).
- *
- * Container colors cycle through primary → secondary → tertiary containers
- * so adjacent icons feel differentiated yet on-palette.
+ * Each icon is a 40dp white circle holding the site's favicon (no labels).
+ * Favicons are fetched from Google's favicon service by domain, so any URL
+ * the user pins automatically gets the right icon.
  */
 ---
 
@@ -19,27 +16,25 @@
   import { storageGet } from '../lib/storage.js';
 
   const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',     url: 'https://mail.google.com',     emoji: '✉️' },
-    { label: 'Calendar',  url: 'https://calendar.google.com', emoji: '📅' },
-    { label: 'GitHub',    url: 'https://github.com',          emoji: '🐙' },
-    { label: 'YouTube',   url: 'https://youtube.com',         emoji: '▶️' },
-    { label: 'Notion',    url: 'https://notion.so',           emoji: '📝' },
-    { label: 'Figma',     url: 'https://figma.com',           emoji: '🎨' },
-    { label: 'Linear',    url: 'https://linear.app',          emoji: '🔵' },
-    { label: 'Vercel',    url: 'https://vercel.com',          emoji: '▲'  },
+    { label: 'Gmail',     url: 'https://mail.google.com'     },
+    { label: 'Calendar',  url: 'https://calendar.google.com' },
+    { label: 'GitHub',    url: 'https://github.com'          },
+    { label: 'YouTube',   url: 'https://youtube.com'         },
+    { label: 'Notion',    url: 'https://notion.so'           },
+    { label: 'Figma',     url: 'https://figma.com'           },
+    { label: 'Linear',    url: 'https://linear.app'          },
+    { label: 'Vercel',    url: 'https://vercel.com'          },
   ];
 
-  // MD3 container-color classes, cycling per index
-  const CONTAINER_CLASSES = [
-    'icon--primary',
-    'icon--secondary',
-    'icon--tertiary',
-    'icon--primary',
-    'icon--secondary',
-    'icon--tertiary',
-    'icon--primary',
-    'icon--secondary',
-  ];
+  /** Resolve a high-res favicon for a URL via Google's favicon service. */
+  function faviconFor(url: string): string {
+    try {
+      const { hostname } = new URL(url);
+      return `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
+    } catch {
+      return '';
+    }
+  }
 
   async function render() {
     const { shortcuts } = await storageGet('shortcuts') as any;
@@ -47,7 +42,7 @@
     const shelf = document.getElementById('shelf-apps');
     if (!shelf) return;
 
-    shelf.innerHTML = items.map((s: any, i: number) => `
+    shelf.innerHTML = items.map((s: any) => `
       <a
         class="shelf-icon md3-state-layer"
         href="${s.url}"
@@ -55,11 +50,11 @@
         rel="noopener noreferrer"
         role="listitem"
         aria-label="${s.label}"
+        title="${s.label}"
       >
-        <div class="shelf-icon__circle ${CONTAINER_CLASSES[i % CONTAINER_CLASSES.length]}" aria-hidden="true">
-          <span class="shelf-icon__emoji">${s.emoji ?? '🔗'}</span>
-        </div>
-        <span class="shelf-icon__tooltip" role="tooltip">${s.label}</span>
+        <span class="shelf-icon__circle" aria-hidden="true">
+          <img class="shelf-icon__favicon" src="${faviconFor(s.url)}" alt="" loading="lazy" />
+        </span>
       </a>
     `).join('');
   }
@@ -71,12 +66,11 @@
   .shelf-apps {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     height: 100%;
   }
 
-  /* ── Shelf icon wrapper ────────────────────────────────────────── */
-  /* 44×44dp tap target wrapping the 40dp circle                     */
+  /* ── Shelf icon wrapper — 44dp tap target ───────────────────────── */
   .shelf-icon {
     position: relative;
     display: flex; align-items: center; justify-content: center;
@@ -87,52 +81,27 @@
     --state-color: var(--md-sys-color-on-surface);
   }
 
-  /* ── Circular icon container — Chrome OS style ─────────────────── */
-  /* 40dp circle, MD3 container color, elevation-level1 shadow        */
+  /* ── White circle holding the favicon (Chrome OS app style) ──────── */
   .shelf-icon__circle {
     width: 40px; height: 40px;
     border-radius: var(--md-sys-shape-corner-full);
+    background: #FFFFFF;
     display: flex; align-items: center; justify-content: center;
-    /* Single MD3 level-1 shadow — not doubled with anything else */
     box-shadow: var(--md-sys-elevation-level1);
     transition: transform 150ms cubic-bezier(0.2, 0, 0, 1),
                 box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
     flex-shrink: 0;
+    overflow: hidden;
   }
   .shelf-icon:hover .shelf-icon__circle {
     transform: scale(1.12);
     box-shadow: var(--md-sys-elevation-level2);
   }
 
-  /* Container color variants */
-  .icon--primary   { background: var(--md-sys-color-primary-container); }
-  .icon--secondary { background: var(--md-sys-color-secondary-container); }
-  .icon--tertiary  { background: var(--md-sys-color-tertiary-container); }
-
-  .shelf-icon__emoji {
-    font-size: 20px;
-    line-height: 1;
-    display: flex; align-items: center;
+  .shelf-icon__favicon {
+    width: 22px; height: 22px;
+    object-fit: contain;
     pointer-events: none;
+    display: block;
   }
-
-  /* ── Chrome OS shelf tooltip ─────────────────────────────────────── */
-  .shelf-icon__tooltip {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%; transform: translateX(-50%);
-    background: var(--md-sys-color-surface-container-highest);
-    color: var(--md-sys-color-on-surface);
-    font: var(--md-sys-typescale-label-medium);
-    letter-spacing: var(--md-sys-typescale-label-medium-tracking);
-    white-space: nowrap;
-    padding: 4px 8px;
-    border-radius: var(--md-sys-shape-corner-extra-small);
-    box-shadow: var(--md-sys-elevation-level2);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 120ms 500ms; /* 500ms delay before appearing */
-    z-index: 100;
-  }
-  .shelf-icon:hover .shelf-icon__tooltip { opacity: 1; }
 </style>
