@@ -30,14 +30,14 @@
 
   // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',    url: 'https://mail.google.com',     scale: 100, elevation: 3 },
-    { label: 'Calendar', url: 'https://calendar.google.com', scale: 100, elevation: 1 },
-    { label: 'GitHub',   url: 'https://github.com',          scale: 73,  elevation: 1 },
-    { label: 'YouTube',  url: 'https://youtube.com',         scale: 67, elevation: 1 },
-    { label: 'Notion',   url: 'https://notion.so',           scale: 73,  elevation: 1 },
-    { label: 'Figma',    url: 'https://figma.com',           scale: 67,  elevation: 1 },
-    { label: 'Linear',   url: 'https://linear.app',          scale: 90, elevation: 1 },
-    { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 1 },
+    { label: 'Gmail',    url: 'https://mail.google.com',     scale: 100, elevation: 5 },
+    { label: 'Calendar', url: 'https://calendar.google.com', scale: 100, elevation: 5 },
+    { label: 'GitHub',   url: 'https://github.com',          scale: 73,  elevation: 5 },
+    { label: 'YouTube',  url: 'https://youtube.com',         scale: 67, elevation: 5 },
+    { label: 'Notion',   url: 'https://notion.so',           scale: 73,  elevation: 5 },
+    { label: 'Figma',    url: 'https://figma.com',           scale: 67,  elevation: 5 },
+    { label: 'Linear',   url: 'https://linear.app',          scale: 90, elevation: 5 },
+    { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 5 },
   ];
 
   /** Resolve a high-res favicon for a URL via Google's favicon service. */
@@ -121,22 +121,17 @@
     background: #FFFFFF;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
-    transition: transform 150ms cubic-bezier(0.2, 0, 0, 1),
-                box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
+    /* Flat by default — elevation is revealed on hover (no zoom). */
+    box-shadow: var(--md-sys-elevation-level0);
+    transition: box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
     flex-shrink: 0;
   }
-  .shelf-icon:hover .shelf-icon__circle { transform: scale(1.12); }
 
-  /* ── Per-item MD3 elevation ─────────────────────────────────────── */
-  .elev-0 { box-shadow: var(--md-sys-elevation-level0); }
-  .elev-1 { box-shadow: var(--md-sys-elevation-level1); }
-  .elev-2 { box-shadow: var(--md-sys-elevation-level2); }
-  .elev-3 { box-shadow: var(--md-sys-elevation-level3); }
-  /* Hover bumps each level up by one for tactile feedback */
-  .shelf-icon:hover .elev-0 { box-shadow: var(--md-sys-elevation-level1); }
-  .shelf-icon:hover .elev-1 { box-shadow: var(--md-sys-elevation-level2); }
-  .shelf-icon:hover .elev-2 { box-shadow: var(--md-sys-elevation-level3); }
-  .shelf-icon:hover .elev-3 { box-shadow: var(--md-sys-elevation-level4); }
+  /* ── Per-item MD3 elevation — revealed only on hover ─────────────── */
+  /* At rest every circle is elevation-less; hovering one lifts just it. */
+  .shelf-icon:hover .elev-1 { box-shadow: var(--md-sys-elevation-level1); }
+  .shelf-icon:hover .elev-2 { box-shadow: var(--md-sys-elevation-level2); }
+  .shelf-icon:hover .elev-3 { box-shadow: var(--md-sys-elevation-level3); }
 
   /* ── Favicon ─────────────────────────────────────────────────────── */
   /* Size comes from an inline width/height percentage (the `scale` field).

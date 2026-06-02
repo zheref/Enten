@@ -43,17 +43,23 @@ import '../styles/theme.css';
     Right: status area (auth · theme toggle · clock)
   -->
   <nav class="shelf" aria-label="Shelf">
-    <div class="shelf__left">
+    <!-- Left zone: launcher -->
+    <div class="shelf__zone shelf__zone--start">
       <!-- Official MD3 Small FAB (canonical elevation + ripple) -->
       <md-fab size="small" class="launcher-fab" aria-label="Show all apps" title="All apps">
         <svg slot="icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
         </svg>
       </md-fab>
-      <div class="shelf__divider" aria-hidden="true"></div>
+    </div>
+
+    <!-- Center zone: app shortcuts (horizontally centred in the bar) -->
+    <div class="shelf__zone shelf__zone--center">
       <Shortcuts />
     </div>
-    <div class="shelf__right">
+
+    <!-- Right zone: status area -->
+    <div class="shelf__zone shelf__zone--end">
       <StatusArea />
     </div>
   </nav>
@@ -193,9 +199,11 @@ import '../styles/theme.css';
     right: 0;
     z-index: 20;
     height: 56px;
-    display: flex;
+    /* 3-column grid: equal 1fr sides keep the auto centre zone (the app
+       shortcuts) horizontally centred in the bar regardless of side widths. */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     padding: 0 12px;
     border-radius: var(--md-sys-shape-corner-extra-large)
                    var(--md-sys-shape-corner-extra-large) 0 0;
@@ -209,18 +217,12 @@ import '../styles/theme.css';
     box-shadow: var(--md-sys-elevation-level1);
   }
 
-  .shelf__left {
-    display: flex; align-items: center; gap: 4px; height: 100%;
-  }
-  .shelf__right {
+  .shelf__zone {
     display: flex; align-items: center; height: 100%;
   }
-
-  .shelf__divider {
-    width: 1px; height: 28px;
-    background: var(--md-sys-color-outline-variant);
-    margin: 0 6px; flex-shrink: 0;
-  }
+  .shelf__zone--start  { justify-content: flex-start; }
+  .shelf__zone--center { justify-content: center; }
+  .shelf__zone--end    { justify-content: flex-end; }
 
   /* ── MD3 Small FAB — launcher (official md-fab) ──────────────────── */
   /* md-fab supplies canonical elevation + ripple; we just place it. */
