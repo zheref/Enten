@@ -148,26 +148,33 @@
      elevation (level 2) on a surface-container background. */
   .shelf-icon__tip {
     position: absolute;
-    bottom: calc(100% + 8px);          /* float above the icon (and the bar) */
+    bottom: calc(100% + 16px);         /* more gap between tooltip and the bar */
     left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    padding: 6px 12px;
+    /* Grows from the bar: starts small + lower, scaling from its bottom edge */
+    transform-origin: bottom center;
+    transform: translateX(-50%) translateY(10px) scale(0.7);
+    padding: 10px 18px;
     background: var(--md-sys-color-surface-container);
     color: var(--md-sys-color-on-surface);
     border-radius: var(--md-sys-shape-corner-extra-large); /* same as menus */
-    box-shadow: var(--md-sys-elevation-level2);            /* same as menus */
-    font: var(--md-sys-typescale-label-medium);
-    letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+    /* Soft dark drop (light backgrounds) + light glow (dark backgrounds) so the
+       tooltip stays legible on any wallpaper. */
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.28),
+      0 0 18px rgba(255, 255, 255, 0.22);
+    font: var(--md-sys-typescale-title-small);
+    letter-spacing: var(--md-sys-typescale-title-small-tracking);
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 120ms ease, transform 120ms ease;
+    transition: opacity 140ms ease,
+                transform 200ms cubic-bezier(0.2, 0, 0, 1);
     z-index: 50;
   }
   .shelf-icon:hover .shelf-icon__tip,
   .shelf-icon:focus-visible .shelf-icon__tip {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    transition-delay: 300ms;           /* brief delay before revealing */
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition-delay: 200ms;           /* brief delay before revealing */
   }
 </style>
