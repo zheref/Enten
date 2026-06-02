@@ -70,7 +70,6 @@
           rel="noopener noreferrer"
           role="listitem"
           aria-label="${s.label}"
-          title="${s.label}"
         >
           <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
             <img
@@ -81,6 +80,7 @@
               loading="lazy"
             />
           </span>
+          <span class="shelf-icon__tip" role="tooltip">${s.label}</span>
         </a>
       `;
     }).join('');
@@ -141,5 +141,33 @@
     display: block;
     object-fit: cover;
     pointer-events: none;
+  }
+
+  /* ── Hover tooltip — reveals the shortcut name above the shelf ─────────────
+     Styled to match the menus: same corner radius (extra-large) and the same
+     elevation (level 2) on a surface-container background. */
+  .shelf-icon__tip {
+    position: absolute;
+    bottom: calc(100% + 8px);          /* float above the icon (and the bar) */
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 6px 12px;
+    background: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface);
+    border-radius: var(--md-sys-shape-corner-extra-large); /* same as menus */
+    box-shadow: var(--md-sys-elevation-level2);            /* same as menus */
+    font: var(--md-sys-typescale-label-medium);
+    letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease, transform 120ms ease;
+    z-index: 50;
+  }
+  .shelf-icon:hover .shelf-icon__tip,
+  .shelf-icon:focus-visible .shelf-icon__tip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    transition-delay: 300ms;           /* brief delay before revealing */
   }
 </style>
