@@ -163,27 +163,32 @@ are defined in `src/components/Shortcuts.astro`. Each entry supports:
 {
   label: 'GitHub',                  // accessible name + tooltip
   url:   'https://github.com',      // opens in a new tab; favicon resolved from host
-  fit:   'contain',                 // 'contain' | 'clip'   (default: 'contain')
-  elevation: 1,                     // 0 | 1 | 2 | 3        (MD3 levels, default: 1)
+  scale: 55,                        // 0–100, percent of the circle (default: 100)
+  elevation: 1,                     // 0 | 1 | 2 | 3, MD3 levels (default: 1)
 }
 ```
 
-**`fit` — how the favicon sits in the white circle:**
+**`scale` — favicon size as a percentage of the 40dp circle:**
 
 | Value | Behaviour | Use for |
 |-------|-----------|---------|
-| `contain` | Favicon stays small (22dp), centred, never touches the edge | Transparent / glyph-only favicons (GitHub, Notion, Vercel) |
-| `clip` | Favicon fills the 40dp circle and is clipped round | Favicons with their own square coloured background (Gmail, YouTube) |
+| `100` | Favicon fills the circle and is clipped round | Favicons with their own square coloured background (Gmail, YouTube) |
+| `< 100` | Favicon scaled down proportionally and centred, white circle visible around it | Transparent / glyph-only favicons (GitHub ≈ 55, Notion, Vercel) |
 
-**`elevation`** maps to MD3 elevation levels 0–3 and is preserved in both fit
-modes; hover bumps it up one level.
+Any value in between works — `75` for a larger centred glyph, `40` for a tiny
+one. `100` reproduces the old "clip" behaviour; ~`55` reproduces the old
+"contain" look.
+
+**`elevation`** maps to MD3 elevation levels 0–3, independent of `scale`;
+hover bumps it up one level.
 
 To change them at runtime, write a new array to storage from the DevTools
 console on the new-tab page:
 
 ```js
 chrome.storage.local.set({ shortcuts: [
-  { label: 'Gmail', url: 'https://mail.google.com', fit: 'clip', elevation: 2 },
+  { label: 'Gmail', url: 'https://mail.google.com', scale: 100, elevation: 2 },
+  { label: 'GitHub', url: 'https://github.com',     scale: 55,  elevation: 1 },
   // …
 ]});
 ```

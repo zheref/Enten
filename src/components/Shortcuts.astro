@@ -5,17 +5,16 @@
  * Each icon is a 40dp circle (white background, MD3 elevation) holding the
  * site's favicon, fetched from Google's favicon service by domain.
  *
- * Per-item favicon handling (the `fit` field):
- *   • 'contain' → favicon stays small (22dp) and centred, never touching the
- *                 circle's edge. Best for transparent / glyph-only favicons.
- *                 The white circle remains visible around the icon.
- *   • 'clip'    → favicon fills the whole circle (40dp, object-fit: cover) and
- *                 is clipped by the circle's rounded boundary. Best for
- *                 favicons that ship their own square coloured background —
- *                 turns a square favicon into a round app icon.
+ * Per-item favicon size (the `scale` field, 0–100, percent of the circle):
+ *   • 100 → favicon fills the whole circle and is clipped by the circle's
+ *           rounded boundary (turns a square favicon into a round app icon).
+ *           Best for favicons that ship their own square coloured background.
+ *   • < 100 → favicon is scaled down proportionally and centred, leaving the
+ *           white circle visible around it. Best for transparent / glyph-only
+ *           favicons. e.g. 55 ≈ a small centred glyph; 75 ≈ a larger one.
  *
  * Per-item elevation (the `elevation` field, 0–3):
- *   Maps to MD3 elevation levels. Defaults to 1. Kept in both fit modes.
+ *   Maps to MD3 elevation levels. Defaults to 1. Independent of `scale`.
  *
  * Both fields are configurable per shortcut and persisted in
  * chrome.storage.local under `shortcuts`.
@@ -29,16 +28,16 @@
 <script>
   import { storageGet } from '../lib/storage.js';
 
-  // fit: 'contain' | 'clip'  ·  elevation: 0 | 1 | 2 | 3
+  // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',    url: 'https://mail.google.com',     fit: 'clip',    elevation: 1 },
-    { label: 'Calendar', url: 'https://calendar.google.com', fit: 'clip',    elevation: 1 },
-    { label: 'GitHub',   url: 'https://github.com',          fit: 'clip', elevation: 1 },
-    { label: 'YouTube',  url: 'https://youtube.com',         fit: 'clip',    elevation: 1 },
-    { label: 'Notion',   url: 'https://notion.so',           fit: 'contain', elevation: 1 },
-    { label: 'Figma',    url: 'https://figma.com',           fit: 'contain', elevation: 1 },
-    { label: 'Linear',   url: 'https://linear.app',          fit: 'clip',    elevation: 1 },
-    { label: 'Vercel',   url: 'https://vercel.com',          fit: 'contain', elevation: 1 },
+    { label: 'Gmail',    url: 'https://mail.google.com',     scale: 100, elevation: 1 },
+    { label: 'Calendar', url: 'https://calendar.google.com', scale: 100, elevation: 1 },
+    { label: 'GitHub',   url: 'https://github.com',          scale: 55,  elevation: 1 },
+    { label: 'YouTube',  url: 'https://youtube.com',         scale: 100, elevation: 1 },
+    { label: 'Notion',   url: 'https://notion.so',           scale: 55,  elevation: 1 },
+    { label: 'Figma',    url: 'https://figma.com',           scale: 55,  elevation: 1 },
+    { label: 'Linear',   url: 'https://linear.app',          scale: 100, elevation: 1 },
+    { label: 'Vercel',   url: 'https://vercel.com',          scale: 55,  elevation: 1 },
   ];
 
   /** Resolve a high-res favicon for a URL via Google's favicon service. */
@@ -51,6 +50,8 @@
     }
   }
 
+  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
   async function render() {
     const { shortcuts } = await storageGet('shortcuts') as any;
     const items = shortcuts ?? DEFAULT_SHORTCUTS;
@@ -58,8 +59,9 @@
     if (!shelf) return;
 
     shelf.innerHTML = items.map((s: any) => {
-      const fit = s.fit === 'clip' ? 'clip' : 'contain';      // default: contain
-      const elev = [0, 1, 2, 3].includes(s.elevation) ? s.elevation : 1; // default: 1
+      // scale: percent of circle (default 100 = fill + clip). Below 100 shrinks.
+      const scale = clamp(typeof s.scale === 'number' ? s.scale : 100, 0, 100);
+      const elev  = [0, 1, 2, 3].includes(s.elevation) ? s.elevation : 1; // default: 1
       return `
         <a
           class="shelf-icon md3-state-layer"
@@ -72,7 +74,8 @@
         >
           <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
             <img
-              class="shelf-icon__favicon fit-${fit}"
+              class="shelf-icon__favicon"
+              style="width:${scale}%;height:${scale}%"
               src="${faviconFor(s.url)}"
               alt=""
               loading="lazy"
@@ -109,7 +112,8 @@
   }
 
   /* ── White circle (Chrome OS app style) ─────────────────────────── */
-  /* Always clips its content to a circle via overflow:hidden.         */
+  /* Always clips its content to a circle via overflow:hidden, so a
+     100%-scale favicon is rounded; centres any smaller favicon.       */
   .shelf-icon__circle {
     position: relative;
     width: 40px; height: 40px;
@@ -134,19 +138,13 @@
   .shelf-icon:hover .elev-2 { box-shadow: var(--md-sys-elevation-level3); }
   .shelf-icon:hover .elev-3 { box-shadow: var(--md-sys-elevation-level4); }
 
-  /* ── Favicon fit modes ──────────────────────────────────────────── */
+  /* ── Favicon ─────────────────────────────────────────────────────── */
+  /* Size comes from an inline width/height percentage (the `scale` field).
+     object-fit: cover means a 100% favicon fills the circle edge-to-edge
+     (then clipped round); a smaller one is centred by the flex container. */
   .shelf-icon__favicon {
     display: block;
-    pointer-events: none;
-  }
-  /* contain: small, centred, never touches the circle edge */
-  .fit-contain {
-    width: 22px; height: 22px;
-    object-fit: contain;
-  }
-  /* clip: fills the circle, clipped round by the circle's overflow:hidden */
-  .fit-clip {
-    width: 100%; height: 100%;
     object-fit: cover;
+    pointer-events: none;
   }
 </style>
