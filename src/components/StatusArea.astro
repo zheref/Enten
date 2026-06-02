@@ -1,7 +1,7 @@
 ---
 /**
  * StatusArea — Chrome OS-style system tray for the shelf's right side.
- *   Auth (md-text-button) · Theme toggle (md-icon-button + md-menu) · Clock
+ *   Account (md-icon-button + md-menu) · Theme toggle (md-icon-button + md-menu) · Clock
  *
  * Theme toggle cycles light / auto / dark, persisted in chrome.storage.local
  * as { themeMode }, applied by toggling .dark-scheme on <html>.
@@ -10,13 +10,29 @@
 
 <div class="status-area">
 
-  <!-- Auth — official MD3 text button -->
-  <md-text-button id="auth-btn" title="Connect Google account" has-icon>
-    <svg slot="icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-    </svg>
-    <span id="auth-label">Sign in</span>
-  </md-text-button>
+  <!-- Auth — borderless person icon button + MD3 account menu -->
+  <div class="auth-control">
+    <md-icon-button id="auth-btn" title="Account"
+                    aria-label="Account" aria-haspopup="menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+      </svg>
+    </md-icon-button>
+
+    <md-menu id="auth-menu" anchor="auth-btn" positioning="fixed"
+             anchor-corner="start-start" menu-corner="end-start">
+      <div class="menu-header">
+        <span class="menu-header__title" id="auth-state">Not signed in</span>
+        <span class="menu-header__sub" id="auth-sub">Connect your Google account</span>
+      </div>
+      <md-menu-item id="auth-action" data-action="signin">
+        <div slot="headline" id="auth-action-label">Sign in with Google</div>
+        <svg slot="start" id="auth-action-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M11 7 9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
+        </svg>
+      </md-menu-item>
+    </md-menu>
+  </div>
 
   <!-- Theme mode — borderless icon button (current theme glyph) + MD3 menu -->
   <div class="theme-toggle">
@@ -147,38 +163,73 @@
   setInterval(updateClock, 10_000);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  const authBtn   = document.getElementById('auth-btn');
-  const authLabel = document.getElementById('auth-label');
+  const authBtn    = document.getElementById('auth-btn');
+  const authMenu   = document.getElementById('auth-menu') as any;
+  const authState  = document.getElementById('auth-state');
+  const authSub    = document.getElementById('auth-sub');
+  const authAction = document.getElementById('auth-action');
+  const authActionLabel = document.getElementById('auth-action-label');
+  const authActionIcon  = document.getElementById('auth-action-icon');
 
+  const ICON_LOGIN  = '<path d="M11 7 9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>';
+  const ICON_LOGOUT = '<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>';
+
+  // Reflect the current account state into the menu.
   async function checkAuth() {
     const { userEmail } = await storageGet('userEmail') as any;
-    if (userEmail && authLabel) {
-      authLabel.textContent = userEmail.split('@')[0];
-      authBtn?.setAttribute('title', `Signed in as ${userEmail} — click to sign out`);
+    if (userEmail) {
+      if (authState) authState.textContent = userEmail;
+      if (authSub)   authSub.textContent = 'Signed in';
+      if (authActionLabel) authActionLabel.textContent = 'Sign out';
+      if (authActionIcon)  authActionIcon.innerHTML = ICON_LOGOUT;
+      authAction?.setAttribute('data-action', 'signout');
+      authBtn?.setAttribute('title', `Signed in as ${userEmail}`);
+    } else {
+      if (authState) authState.textContent = 'Not signed in';
+      if (authSub)   authSub.textContent = 'Connect your Google account';
+      if (authActionLabel) authActionLabel.textContent = 'Sign in with Google';
+      if (authActionIcon)  authActionIcon.innerHTML = ICON_LOGIN;
+      authAction?.setAttribute('data-action', 'signin');
+      authBtn?.setAttribute('title', 'Account — not signed in');
     }
   }
 
-  authBtn?.addEventListener('click', async () => {
-    const { userEmail } = await storageGet('userEmail') as any;
-    if (userEmail) {
+  async function signIn() {
+    if (typeof chrome === 'undefined' || !chrome?.identity) return;
+    try {
+      const token = await new Promise<string>((res, rej) =>
+        chrome.identity.getAuthToken({ interactive: true }, (t: string) =>
+          chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(t)
+        )
+      );
+      const profile = await fetch(
+        'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => r.json());
+      await storageSet({ userEmail: profile.email });
+      location.reload();
+    } catch (e) { console.error('[SergioSwift] Auth error', e); }
+  }
+
+  // Open the account menu from the person button.
+  authBtn?.addEventListener('click', () => {
+    if (authMenu) {
+      authMenu.anchorElement = authBtn;
+      authMenu.open = !authMenu.open;
+      authBtn.setAttribute('aria-expanded', String(authMenu.open));
+    }
+  });
+  authMenu?.addEventListener('closed', () =>
+    authBtn?.setAttribute('aria-expanded', 'false'));
+
+  // Sign in / sign out from the menu item.
+  authAction?.addEventListener('click', async () => {
+    if (authAction.getAttribute('data-action') === 'signout') {
       await signOut();
       await storageRemove(['userEmail', 'cachedEmails', 'cachedEvents']);
       location.reload();
     } else {
-      if (typeof chrome === 'undefined' || !chrome?.identity) return;
-      try {
-        const token = await new Promise<string>((res, rej) =>
-          chrome.identity.getAuthToken({ interactive: true }, (t: string) =>
-            chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : res(t)
-          )
-        );
-        const profile = await fetch(
-          'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
-          { headers: { Authorization: `Bearer ${token}` } }
-        ).then(r => r.json());
-        await storageSet({ userEmail: profile.email });
-        location.reload();
-      } catch (e) { console.error('[SergioSwift] Auth error', e); }
+      await signIn();
     }
   });
 
@@ -202,8 +253,27 @@
   #theme-menu md-menu-item.active .check { visibility: visible; }
   #theme-menu md-menu-item.active { --md-menu-item-label-text-color: var(--md-sys-color-primary); }
 
-  #auth-btn { --md-text-button-label-text-color: var(--md-sys-color-on-surface-variant); }
-  #auth-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Borderless account button + anchored account menu */
+  .auth-control { position: relative; display: flex; align-items: center; }
+  #auth-btn { color: var(--md-sys-color-on-surface-variant); }
+
+  /* Non-interactive header row inside the account menu */
+  #auth-menu .menu-header {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 12px 16px 8px;
+    max-width: 260px;
+  }
+  #auth-menu .menu-header__title {
+    font: var(--md-sys-typescale-title-small);
+    letter-spacing: var(--md-sys-typescale-title-small-tracking);
+    color: var(--md-sys-color-on-surface);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #auth-menu .menu-header__sub {
+    font: var(--md-sys-typescale-body-small);
+    letter-spacing: var(--md-sys-typescale-body-small-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+  }
 
   /* ── Clock ──────────────────────────────────────────────────────── */
   .clock {
