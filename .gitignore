@@ -18,6 +18,11 @@ dist/
 build/
 release/
 
+# ─── Theme switching artefact ─────────────────────────────────────────────────
+# The helper script writes a marker when dark mode is active.
+# Never commit it — manifest.json must stay as the light source of truth.
+.manifest.active
+
 # ─── Secrets ──────────────────────────────────────────────────────────────────
 .env
 secrets.*

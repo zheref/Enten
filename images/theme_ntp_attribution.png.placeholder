@@ -1,6 +1,0 @@
-REPLACE THIS FILE WITH: theme_ntp_attribution.png
-- Role   : Small branding badge shown in the bottom-right corner of the NTP
-- Size   : Maximum 200 × 100 px
-- Format : PNG-24 with alpha (transparent background recommended)
-- Tips   : Use your logo / wordmark here.
-           This is optional — remove the key from manifest.json to hide it.

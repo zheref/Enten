@@ -1,6 +1,0 @@
-REPLACE THIS FILE WITH: theme_frame_incognito.png
-- Role   : Frame shown in Incognito windows
-- Size   : 2500 × 200 px
-- Format : PNG-24
-- Tips   : A darker or desaturated variant of theme_frame works well.
-           Remove this key if you want Chrome's default incognito look.

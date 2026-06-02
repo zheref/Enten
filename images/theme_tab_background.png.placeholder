@@ -1,7 +1,0 @@
-REPLACE THIS FILE WITH: theme_tab_background.png
-- Role   : Tile used to fill the background of inactive tabs
-- Size   : 89 × 41 px  (Chrome tiles this to fill the tab strip)
-- Format : PNG-24 with alpha
-- Tips   : Keep it subtle — usually a semi-transparent overlay or
-           a slight darkening of the frame colour.
-           Many themes skip this and rely on colours/tints alone.

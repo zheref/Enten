@@ -1,7 +1,0 @@
-REPLACE THIS FILE WITH: theme_frame.png
-- Role   : Background behind the tab strip (active window)
-- Size   : 2500 × 200 px  (Chrome tiles it horizontally if narrower)
-- Format : PNG-24 (transparency supported)
-- Tips   : The top ~135 px are visible above the toolbar.
-           Place your logo/pattern in the right half so it shows
-           even on smaller screens once tabs fill the left.
