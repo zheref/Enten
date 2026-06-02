@@ -1,196 +1,144 @@
 # SergioSwift — Chrome Theme
 
-> A custom Google Chrome theme built on three brand colours:
-> **Eggshell** `#F1E9DA` · **Giants Orange** `#ED6733` · **Prussian Blue** `#133552`
+A minimal Chrome theme built on three colours: a deep **Prussian Blue** header,
+a warm **Eggshell** toolbar, and **Giants Orange** accents on links and active
+elements.
 
 ---
 
-## Table of Contents
+## Palette
 
-1. [What is a Chrome theme?](#1-what-is-a-chrome-theme)
-2. [Project structure](#2-project-structure)
-3. [Quick-start checklist](#3-quick-start-checklist)
-4. [Customising colours](#4-customising-colours)
-5. [The NTP background image](#5-the-ntp-background-image)
-6. [Loading the theme locally (developer mode)](#6-loading-the-theme-locally-developer-mode)
-7. [Testing & iteration tips](#7-testing--iteration-tips)
-8. [Packaging for distribution](#8-packaging-for-distribution)
-9. [Publishing to the Chrome Web Store](#9-publishing-to-the-chrome-web-store)
-10. [Version control workflow](#10-version-control-workflow)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Resources](#12-resources)
+| Role | Name | Hex | RGB |
+|------|------|-----|-----|
+| Header / tab strip | Prussian Blue | `#133552` | `19, 53, 82` |
+| Toolbar / active tab | Eggshell | `#F1E9DA` | `241, 233, 218` |
+| Accent / links / active tab label | Giants Orange | `#ED6733` | `237, 103, 51` |
+| NTP background fill | Jaguar | `#292A2D` | `41, 42, 45` |
 
 ---
 
-## 1. What is a Chrome theme?
+## Install — personal use (unpacked)
 
-A Chrome theme is a special type of Chrome extension (no JavaScript required)
-that customises the browser's visual appearance: the tab strip, toolbar, address
-bar, New Tab Page background, and colour palette. Everything lives in a single
-folder with a `manifest.json` and (optionally) image files.
+> No Web Store account required.
+
+1. [Download or clone](../../archive/refs/heads/main.zip) this repository.
+2. Open Chrome and go to `chrome://extensions`.
+3. Enable **Developer mode** (toggle, top-right corner).
+4. Click **Load unpacked** and select the downloaded folder
+   (the one that contains `manifest.json`).
+5. Chrome applies the theme immediately — no restart needed.
+
+To update after pulling new changes: click the **↺** icon next to the
+theme on `chrome://extensions`.
 
 ---
 
-## 2. Project structure
+## Install — Chrome Web Store
+
+> *(Not published yet — coming soon.)*
+
+---
+
+## Customise
+
+### Swap the New Tab Page wallpaper
+
+1. Drop your image into the `images/` folder (PNG recommended; 2560 × 1440 px
+   or larger for sharp display on 1440p / 4K screens).
+2. Open `manifest.json` and update the path:
+   ```json
+   "theme_ntp_background": "images/your-image.png"
+   ```
+3. Reload the extension at `chrome://extensions`.
+
+### Change colours
+
+All values in `manifest.json → theme → colors` are `[R, G, B]` triplets
+(0 – 255). A quick reference for every key is in
+[`theme.config.md`](theme.config.md).
+
+Useful tools:
+- [Hex → RGB converter](https://www.rapidtables.com/convert/color/hex-to-rgb.html)
+- [Contrast checker](https://webaim.org/resources/contrastchecker/)
+
+Full colour map with contrast ratios and iteration hints: [`palette.md`](palette.md).
+
+### Branch workflow
+
+```bash
+# Always keep main stable
+git checkout -b experiment/my-idea
+
+# Iterate, reload in Chrome to preview, then either merge or discard
+git checkout main
+git merge experiment/my-idea   # keep
+git branch -D experiment/my-idea   # or discard
+```
+
+---
+
+## Project structure
 
 ```
 .
-├── manifest.json     ← The theme (only file Chrome reads)
-├── palette.md        ← Full colour map, contrast ratios & iteration hints
-├── theme.config.md   ← Key-by-key manifest reference
+├── manifest.json       ← The theme (only file Chrome reads)
+├── palette.md          ← Colour map, contrast ratios, iteration hints
+├── theme.config.md     ← Every manifest key explained
 ├── .gitignore
-├── README.md         ← You are here
+├── README.md
 └── images/
-    ├── naruto-swift.jpg   ← Original 4K source (keep as reference)
-    └── naruto-swift.png   ← Active NTP wallpaper (2560 × 1440)
+    ├── naruto-swift.jpg    ← Original 4K source (reference only)
+    └── naruto-swift.png    ← Active NTP wallpaper (2560 × 1440)
 ```
 
 ---
 
-## 3. Quick-start checklist
+## Publish to the Chrome Web Store
 
-- [ ] Replace `YOUR_THEME_DESCRIPTION` in `manifest.json`
-- [ ] Bump `"version"` before each new release
-- [ ] Load the theme in Chrome to preview it (see §6)
-- [ ] Open a new tab to check the NTP image
-- [ ] Open an Incognito window to check the incognito frame
-- [ ] Read `palette.md` for colour-by-colour iteration hints
-- [ ] When satisfied, commit and tag the release
+1. Zip the folder (exclude dev-only files):
+   ```bash
+   zip -r sergioswift.zip . \
+     --exclude ".git/*" --exclude ".DS_Store" \
+     --exclude "*.pem"  --exclude "*.crx"
+   ```
+2. Go to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+   (one-time $5 USD registration fee).
+3. **New item** → upload the ZIP → fill in the listing:
+   - **Category** → *Themes*
+   - **Screenshots** — at least one at `1280 × 800 px`
+   - **Promotional tile** — `440 × 280 px` PNG (required)
+4. Submit for review (1 – 3 business days).
 
----
-
-## 4. Customising colours
-
-All colour values are `[R, G, B]` triplets (0–255). The full colour map —
-including which brand colour each key uses, contrast ratios, and iteration
-hints — is in **`palette.md`**.
-
-Quick reference tool: [RGB ↔ Hex converter](https://www.rapidtables.com/convert/color/hex-to-rgb.html)
-
-For `tints`, values are `[hue, saturation, lightness]` (0.0–1.0, or `-1.0`
-to leave a channel unchanged). See `theme.config.md` for the full reference.
+To update a published theme: bump `"version"` in `manifest.json`,
+re-zip, and upload a new package.
 
 ---
 
-## 5. The NTP background image
+## Contributing
 
-`images/naruto-swift.png` (2560 × 1440) is the active New Tab Page wallpaper.
-The original 4K source is kept as `naruto-swift.jpg` for reference.
+Pull requests are welcome. Please open an issue first for significant
+palette or structural changes so we can discuss the direction.
 
-| Setting | Value | Effect |
-|---------|-------|--------|
-| `ntp_background_alignment` | `"center"` | Centred in both axes |
-| `ntp_background_repeat` | `"no-repeat"` | No tiling |
-
-Chrome displays the image at its native pixel size. On a 1080p screen the
-2K image slightly overflows the viewport and is cropped to the centre —
-sharp and fill-like. On a 1440p display it renders at 1:1.
-
-To replace the image: drop a new PNG into `images/`, update
-`"theme_ntp_background"` in `manifest.json`, and reload.
+1. Fork the repo and create a branch from `main`.
+2. Make your changes and test by loading the folder as an unpacked extension.
+3. Keep `manifest.json` valid JSON (validate at [jsonlint.com](https://jsonlint.com)).
+4. Open a pull request with a short description and, if possible, a screenshot
+   of the change in Chrome.
 
 ---
 
-## 6. Loading the theme locally (developer mode)
+## Troubleshooting
 
-1. Open Chrome → navigate to `chrome://extensions`
-2. Enable **Developer mode** (toggle in the top-right corner)
-3. Click **Load unpacked**
-4. Select this project folder (the one containing `manifest.json`)
-5. Chrome applies the theme immediately — no restart needed
-
-To reload after changes: click the **↺** icon next to your theme.
-
----
-
-## 7. Testing & iteration tips
-
-- Open a **New Tab** to preview the NTP image, typography, and link colours.
-- Open an **Incognito window** (`⌘ Shift N` / `Ctrl Shift N`) to check the
-  incognito frame colour (`frame_incognito`).
-- Click away to another app and back to see active vs inactive frame.
-- Consult `palette.md` → *Iteration hints* for targeted tweaks.
-
----
-
-## 8. Packaging for distribution
-
-```bash
-zip -r sergioswift.zip . \
-  --exclude ".git/*" \
-  --exclude ".DS_Store" \
-  --exclude "*.pem" \
-  --exclude "*.crx"
-```
-
-> **Private key (.pem)** — Chrome generates a `.pem` when you use
-> *Pack Extension*. Keep it safe and **never commit it** (listed in
-> `.gitignore`). You need it to push updates with the same extension ID.
-
----
-
-## 9. Publishing to the Chrome Web Store
-
-### Prerequisites
-
-- A Google account enrolled as a Chrome Web Store developer
-  (one-time **$5 USD** registration fee).
-- At least one **screenshot** at `1280 × 800 px` or `640 × 400 px`.
-- A **promotional tile**: `440 × 280 px` PNG (required).
-- Optional: small icon `96 × 96 px`; marquee banner `1400 × 560 px`.
-
-### Steps
-
-1. Create the ZIP as described in §8.
-2. Go to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
-3. **New item** → upload the ZIP.
-4. Fill in the store listing — **Name**, short description, Category → *Themes*, screenshots.
-5. Set **Visibility** → *Public* or *Unlisted*.
-6. Submit for review (typically 1–3 business days).
-
-### Updating a published theme
-
-1. Increment `"version"` in `manifest.json`.
-2. Re-ZIP and upload in the Developer Dashboard → **Package** → **Upload new package**.
-3. Submit for review.
-
----
-
-## 10. Version control workflow
-
-```bash
-# After tweaking colours or images
-git add manifest.json
-git commit -m "feat: adjust toolbar contrast"
-
-# Tag before each Web Store upload
-git tag -a v1.0.0 -m "Release v1.0.0"
-
-# Experiment safely on a branch
-git checkout -b experiment/my-idea
-# ...iterate, test...
-git checkout main          # back to stable
-git branch -D experiment/my-idea   # discard if not needed
-```
-
----
-
-## 11. Troubleshooting
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
 | Theme won't load | `manifest.json` syntax error | Validate at [jsonlint.com](https://jsonlint.com) |
-| NTP image not showing | Path mismatch (case-sensitive) | Check `"theme_ntp_background"` matches the file name exactly |
-| Colours look off | Wrong RGB order or out-of-range value | Values must be integers 0–255 in `[R, G, B]` order |
-| NTP logo looks bad | Wrong `ntp_logo_alternate` | `0` = coloured logo · `1` = white logo |
-| Web Store rejects ZIP | ZIP wraps the folder itself | Zip the *contents* of the folder, not the folder |
+| NTP image not showing | Path mismatch (case-sensitive on Linux/macOS) | Check `"theme_ntp_background"` matches file name exactly |
+| Colours look wrong | Wrong RGB order or out-of-range value | Values must be integers 0 – 255 in `[R, G, B]` order |
+| NTP logo looks off | Wrong `ntp_logo_alternate` | `0` = coloured Google logo · `1` = white logo |
+| Web Store rejects ZIP | ZIP contains the folder itself | Zip the *contents* of the folder, not the folder |
 
 ---
 
-## 12. Resources
+## License
 
-- [Chrome theme documentation (Chromium)](https://developer.chrome.com/docs/extensions/mv3/themes/)
-- [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-- [JSON validator](https://jsonlint.com)
-- [RGB ↔ Hex converter](https://www.rapidtables.com/convert/color/hex-to-rgb.html)
-- [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
+[MIT](LICENSE) — feel free to fork and make it your own.
