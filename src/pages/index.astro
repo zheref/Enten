@@ -207,8 +207,10 @@ import '../styles/theme.css';
     border-radius: var(--md-sys-shape-corner-extra-large)
                    var(--md-sys-shape-corner-extra-large) 0 0;
     background: var(--shelf-bg);
-    backdrop-filter: blur(24px) saturate(1.8);
-    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    /* Opacity + blur radius are tunable in src/styles/theme.css
+       (--shelf-opacity / --shelf-blur), per light & dark scheme. */
+    backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
+    -webkit-backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
     /* Border only on the top edge to match the rounded top corners */
     border-top: 1px solid var(--md-sys-color-outline-variant);
     /* Subtle MD3 level-1 shadow; the top border is the primary separator.

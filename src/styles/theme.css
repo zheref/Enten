@@ -69,8 +69,14 @@
   --md-sys-color-shadow: #000000;
   --md-sys-color-scrim:  #000000;
 
-  /* Shelf overlay (semi-transparent surface for the bottom bar) */
-  --shelf-bg: rgba(251, 235, 227, 0.72);
+  /* ── Shelf (bottom app bar) glass — LIGHT MODE — tweak these ───────────────
+     The bar is a tinted, semi-transparent surface over a Gaussian blur.
+     Lower --shelf-opacity  → more of the wallpaper shows through (less dense).
+     Higher --shelf-blur    → frostier / softer blur.                          */
+  --shelf-tint:    251, 235, 227;   /* RGB of the bar tint */
+  --shelf-opacity: 0.55;            /* ITERATE: 0 = clear · 1 = solid */
+  --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
+  --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
   /* Wallpaper overlay (scrim strength over the image) */
   --wallpaper-scrim: rgba(255, 248, 245, 0.08);
@@ -125,7 +131,11 @@
   --md-sys-color-shadow: #000000;
   --md-sys-color-scrim:  #000000;
 
-  --shelf-bg: rgba(26, 28, 30, 0.78);
+  /* ── Shelf glass — DARK MODE — tweak these (see light-mode notes above) ──── */
+  --shelf-tint:    26, 28, 30;
+  --shelf-opacity: 0.78;            /* ITERATE */
+  --shelf-blur:    24px;            /* ITERATE */
+  --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
   --wallpaper-scrim: rgba(0, 0, 0, 0.22);
 }
 
