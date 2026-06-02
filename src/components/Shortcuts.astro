@@ -1,103 +1,101 @@
 ---
 /**
- * Shortcuts.astro — App icon grid.
+ * Shortcuts — MD3 Assist Chip grid.
+ * spec: height 32dp, shape=full (corner-full), surfaceContainerLow bg,
+ *       outline-variant border, labelLarge text, 18dp leading icon.
  *
- * Default shortcuts are defined below. The user can override them at runtime
- * via the edit UI, which persists to chrome.storage.local.
- * Add/remove entries from DEFAULT_SHORTCUTS or let the runtime UI manage them.
+ * Shortcuts are stored in chrome.storage.local so the user can add/remove
+ * without touching source code.
  */
 ---
 
-<section class="shortcuts" id="shortcuts">
-  <div class="shortcut-grid" id="shortcut-grid">
-    <!-- Populated by the script below -->
+<section class="shortcuts">
+  <div class="chip-grid" id="shortcut-grid" role="list">
+    <!-- Populated by script -->
   </div>
-  <button class="add-shortcut" id="add-shortcut" title="Add shortcut">＋</button>
 </section>
 
 <script>
   import { storageGet, storageSet } from '../lib/storage.js';
 
   const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',    url: 'https://mail.google.com',    emoji: '✉️' },
-    { label: 'Calendar', url: 'https://calendar.google.com',emoji: '📅' },
-    { label: 'GitHub',   url: 'https://github.com',         emoji: '🐙' },
-    { label: 'YouTube',  url: 'https://youtube.com',        emoji: '▶️' },
-    { label: 'Notion',   url: 'https://notion.so',          emoji: '📝' },
-    { label: 'Figma',    url: 'https://figma.com',          emoji: '🎨' },
+    { label: 'Gmail',     url: 'https://mail.google.com',     emoji: '✉️' },
+    { label: 'Calendar',  url: 'https://calendar.google.com', emoji: '📅' },
+    { label: 'GitHub',    url: 'https://github.com',          emoji: '🐙' },
+    { label: 'YouTube',   url: 'https://youtube.com',         emoji: '▶️' },
+    { label: 'Notion',    url: 'https://notion.so',           emoji: '📝' },
+    { label: 'Figma',     url: 'https://figma.com',           emoji: '🎨' },
+    { label: 'Linear',    url: 'https://linear.app',          emoji: '🔵' },
+    { label: 'Vercel',    url: 'https://vercel.com',          emoji: '▲' },
   ];
 
-  async function loadShortcuts() {
+  async function render() {
     const { shortcuts } = await storageGet('shortcuts');
-    return shortcuts ?? DEFAULT_SHORTCUTS;
-  }
-
-  function renderGrid(shortcuts) {
-    const grid = document.getElementById('shortcut-grid');
+    const items = shortcuts ?? DEFAULT_SHORTCUTS;
+    const grid  = document.getElementById('shortcut-grid');
     if (!grid) return;
-    grid.innerHTML = shortcuts.map((s, i) => `
-      <a class="shortcut-item" href="${s.url}" target="_blank" rel="noopener" data-index="${i}">
-        <span class="shortcut-icon">${s.emoji ?? '🔗'}</span>
-        <span class="shortcut-label">${s.label}</span>
+
+    grid.innerHTML = items.map((s, i) => `
+      <a
+        class="assist-chip md3-state-layer"
+        href="${s.url}"
+        target="_blank"
+        rel="noopener noreferrer"
+        role="listitem"
+        data-index="${i}"
+      >
+        <span class="assist-chip__icon" aria-hidden="true">${s.emoji ?? '🔗'}</span>
+        <span class="assist-chip__label">${s.label}</span>
       </a>
     `).join('');
   }
 
-  loadShortcuts().then(renderGrid);
+  render();
 </script>
 
 <style>
-  .shortcuts {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-  }
+  .shortcuts { width: 100%; }
 
-  .shortcut-grid {
+  /* ── MD3 Chip grid ───────────────────────────────────────────────── */
+  .chip-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
     justify-content: center;
   }
 
-  .shortcut-item {
-    display: flex;
-    flex-direction: column;
+  /* ── MD3 Assist Chip ─────────────────────────────────────────────── */
+  /* spec: h=32dp, shape=full, bg=surfaceContainerLow,                 */
+  /*       border=1dp outline-variant, px=16dp, gap=8dp, icon=18dp     */
+  .assist-chip {
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    width: 80px;
-    padding: 12px 8px;
-    background: var(--color-surface);
-    border-radius: var(--radius-md);
+    gap: 8px;
+    height: 32px;
+    padding: 0 16px 0 8px;       /* leading icon needs less padding    */
+    border-radius: var(--md-sys-shape-corner-full);
+    background: var(--md-sys-color-surface-container-low);
+    border: 1px solid var(--md-sys-color-outline-variant);
     text-decoration: none;
-    color: var(--color-text);
-    font-size: 12px;
-    transition: background 0.15s, transform 0.1s;
+    color: var(--md-sys-color-on-surface);
+    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1),
+                border-color 200ms;
+    --state-color: var(--md-sys-color-on-surface);  /* state layer color */
   }
-  .shortcut-item:hover {
-    background: var(--color-border);
-    transform: translateY(-2px);
-    color: var(--color-accent);
+  /* Elevated state on hover — MD3 chips gain elevation-1 on hover */
+  .assist-chip:hover {
+    box-shadow: var(--md-sys-elevation-level1);
+    border-color: transparent;
   }
 
-  .shortcut-icon { font-size: 24px; line-height: 1; }
-  .shortcut-label { text-align: center; line-height: 1.2; }
-
-  .add-shortcut {
-    background: none;
-    border: 1.5px dashed var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
-    font-size: 20px;
-    width: 80px;
-    height: 80px;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+  .assist-chip__icon {
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
   }
-  .add-shortcut:hover {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+  .assist-chip__label {
+    font: var(--md-sys-typescale-label-large);
+    letter-spacing: var(--md-sys-typescale-label-large-tracking);
   }
 </style>

@@ -11,35 +11,42 @@ import '../styles/theme.css';
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
   <title>New Tab</title>
+  <!-- Roboto — MD3 reference typeface -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-  <!-- Background image -->
-  <div class="bg">
-    <img src="/images/naruto-swift.png" alt="" aria-hidden="true" />
+  <!-- ── Wallpaper backdrop (decorative, behind all MD3 surfaces) ── -->
+  <div class="backdrop" aria-hidden="true">
+    <img src="/images/naruto-swift.png" alt="" />
   </div>
 
-  <!-- Top bar: auth -->
-  <header class="topbar">
-    <span class="topbar-brand">SergioSwift</span>
-    <AuthPanel />
+  <!-- ── MD3 Small Top App Bar ──────────────────────────────────────── -->
+  <!-- spec: 64dp tall, surfaceContainer bg, titleLarge headline       -->
+  <header class="top-app-bar">
+    <span class="top-app-bar__headline">SergioSwift</span>
+    <div class="top-app-bar__actions">
+      <AuthPanel />
+    </div>
   </header>
 
-  <!-- Main dashboard grid -->
-  <main class="dashboard">
+  <!-- ── Main content — 3-column expanded layout ───────────────────── -->
+  <main class="layout">
 
-    <!-- Left column: Calendar -->
-    <div class="panel">
+    <!-- Left: Calendar card -->
+    <div class="layout__col">
       <CalendarWidget />
     </div>
 
-    <!-- Center: Shortcuts -->
-    <div class="panel panel--center">
+    <!-- Centre: Shortcuts -->
+    <div class="layout__col layout__col--center">
       <Shortcuts />
     </div>
 
-    <!-- Right column: Email -->
-    <div class="panel">
+    <!-- Right: Email card -->
+    <div class="layout__col">
       <EmailWidget />
     </div>
 
@@ -49,56 +56,60 @@ import '../styles/theme.css';
 </html>
 
 <style>
-  /* ── Background ─────────────────────────────────────────────────────────── */
-  .bg {
+  /* ── Backdrop ────────────────────────────────────────────────────── */
+  .backdrop {
     position: fixed; inset: 0; z-index: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--jaguar);           /* shows while image loads */
+    background: var(--md-sys-color-background);
+    overflow: hidden;
   }
-  .bg img {
-    width: 100vw; height: 100vh;
-    object-fit: cover;                   /* fill viewport; crop edges */
+  .backdrop img {
+    width: 100%; height: 100%;
+    object-fit: cover;
     object-position: center;
-    max-width: 2560px; max-height: 1440px;
-    opacity: 0.35;                       /* subtle — dashboards live in front */
+    opacity: 0.12;          /* subtle — MD3 surfaces sit on top */
   }
 
-  /* ── Top bar ────────────────────────────────────────────────────────────── */
-  .topbar {
+  /* ── MD3 Small Top App Bar ──────────────────────────────────────── */
+  /* spec: h=64dp, bg=surfaceContainer, title=titleLarge, px=16dp      */
+  .top-app-bar {
     position: relative; z-index: 10;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    height: 64px;
+    padding: 0 16px;
+    background: var(--md-sys-color-surface-container);
+    gap: 16px;
   }
-  .topbar-brand {
-    font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
-    color: var(--color-accent);
+  .top-app-bar__headline {
+    flex: 1;
+    font: var(--md-sys-typescale-title-large);
+    color: var(--md-sys-color-on-surface);
+  }
+  .top-app-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  /* ── Dashboard grid ─────────────────────────────────────────────────────── */
-  .dashboard {
+  /* ── Expanded layout grid ───────────────────────────────────────── */
+  /* 3-column: side cards share equal width, centre is narrower        */
+  .layout {
     position: relative; z-index: 10;
     display: grid;
-    grid-template-columns: 1fr 260px 1fr; /* left | shortcuts | right */
+    grid-template-columns: 1fr 300px 1fr;
     gap: 16px;
-    padding: 0 24px 24px;
-    height: calc(100vh - 56px);           /* full height minus topbar */
-  }
-
-  .panel {
-    background: rgba(41, 42, 45, 0.82);  /* jaguar + slight transparency */
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: var(--radius-lg);
     padding: 16px;
+    height: calc(100vh - 64px);
     overflow: hidden;
-    display: flex; flex-direction: column;
   }
-
-  /* Center column is just the shortcuts — no card background needed */
-  .panel--center {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    justify-content: center;
+  .layout__col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;       /* allow flex children to scroll */
+    overflow: hidden;
+  }
+  .layout__col--center {
+    justify-content: flex-start;
+    padding-top: 8px;
   }
 </style>

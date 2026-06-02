@@ -1,42 +1,160 @@
-/* ── SergioSwift Design Tokens ─────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   SergioSwift — Material Design 3 token sheet
+   Dark scheme derived from brand palette:
+     Primary   → Giants Orange  #ED6733
+     Secondary → Prussian Blue  #133552
+     Tertiary  → Eggshell       #F1E9DA  (warm neutral)
+     Neutral   → Jaguar         #292A2D
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* Brand colours */
-  --prussian-blue:   #133552;   /* rgb(19, 53, 82)   — header / frame */
-  --eggshell:        #F1E9DA;   /* rgb(241, 233, 218) — toolbar / surfaces */
-  --giants-orange:   #ED6733;   /* rgb(237, 103, 51)  — accent / active */
-  --jaguar:          #292A2D;   /* rgb(41, 42, 45)    — dark surfaces */
 
-  /* Semantic aliases */
-  --color-bg:        var(--jaguar);
-  --color-surface:   #35373B;   /* slightly lighter than jaguar */
-  --color-border:    #44464B;
-  --color-text:      var(--eggshell);
-  --color-text-muted:#8B9BB4;
-  --color-accent:    var(--giants-orange);
-  --color-heading:   var(--eggshell);
+  /* ── MD3 Color Tokens · Dark scheme ────────────────────────────────────── */
 
-  /* Typography */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', monospace;
+  /* Primary  (Giants Orange tonal palette) */
+  --md-sys-color-primary:              #FFB59A; /* P-80  — on dark surfaces  */
+  --md-sys-color-on-primary:           #5D1800; /* P-20                      */
+  --md-sys-color-primary-container:    #812300; /* P-30  — darker container  */
+  --md-sys-color-on-primary-container: #FFDBCE; /* P-90                      */
+  --md-sys-color-inverse-primary:      #9B4412; /* P-40  — light mode value  */
 
-  /* Spacing */
-  --radius-sm:  6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* Secondary  (Prussian Blue tonal palette) */
+  --md-sys-color-secondary:              #ADC8E6; /* S-80 */
+  --md-sys-color-on-secondary:           #1A3A55; /* S-20 */
+  --md-sys-color-secondary-container:    #2F506D; /* S-30 */
+  --md-sys-color-on-secondary-container: #CBE3FF; /* S-90 */
+
+  /* Tertiary  (Eggshell / warm neutral tonal palette) */
+  --md-sys-color-tertiary:              #E2C5A0; /* T-80 */
+  --md-sys-color-on-tertiary:           #402D12; /* T-20 */
+  --md-sys-color-tertiary-container:    #594326; /* T-30 */
+  --md-sys-color-on-tertiary-container: #FFE0BC; /* T-90 */
+
+  /* Error */
+  --md-sys-color-error:              #FFB4AB;
+  --md-sys-color-on-error:           #690005;
+  --md-sys-color-error-container:    #93000A;
+  --md-sys-color-on-error-container: #FFDAD6;
+
+  /* Background */
+  --md-sys-color-background:    #1A1C1E;
+  --md-sys-color-on-background: #E2E2E5;
+
+  /* Surface */
+  --md-sys-color-surface:            #1A1C1E;
+  --md-sys-color-on-surface:         #E2E2E5;
+  --md-sys-color-surface-variant:    #43474E;
+  --md-sys-color-on-surface-variant: #C4C7CF;
+  --md-sys-color-surface-tint:       #FFB59A; /* = primary */
+  --md-sys-color-inverse-surface:    #E2E2E5;
+  --md-sys-color-inverse-on-surface: #2F3033;
+
+  /* Surface containers  (elevation tiers — low → high = deeper in hierarchy) */
+  --md-sys-color-surface-container-lowest:  #0F1113;
+  --md-sys-color-surface-container-low:     #222427;
+  --md-sys-color-surface-container:         #26282A;  /* ≈ Jaguar */
+  --md-sys-color-surface-container-high:    #313235;
+  --md-sys-color-surface-container-highest: #3C3D40;
+
+  /* Outline */
+  --md-sys-color-outline:         #8D9199;
+  --md-sys-color-outline-variant: #43474E;
+
+  /* Misc */
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim:  #000000;
+
+  /* ── MD3 Typography ─────────────────────────────────────────────────────── */
+  --md-ref-typeface-brand:  'Roboto', system-ui, sans-serif;
+  --md-ref-typeface-plain:  'Roboto', system-ui, sans-serif;
+
+  /* Display */
+  --md-sys-typescale-display-large:   700 57px/64px var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-medium:  700 45px/52px var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-small:   700 36px/44px var(--md-ref-typeface-brand);
+  /* Headline */
+  --md-sys-typescale-headline-large:  400 32px/40px var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-medium: 400 28px/36px var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-small:  400 24px/32px var(--md-ref-typeface-brand);
+  /* Title */
+  --md-sys-typescale-title-large:     400 22px/28px var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-medium:    500 16px/24px var(--md-ref-typeface-plain);
+  --md-sys-typescale-title-small:     500 14px/20px var(--md-ref-typeface-plain);
+  /* Body */
+  --md-sys-typescale-body-large:      400 16px/24px var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-medium:     400 14px/20px var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-small:      400 12px/16px var(--md-ref-typeface-plain);
+  /* Label */
+  --md-sys-typescale-label-large:     500 14px/20px var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-medium:    500 12px/16px var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-small:     500 11px/16px var(--md-ref-typeface-plain);
+
+  /* Letter-spacing overrides (applied per element — not in shorthand) */
+  --md-sys-typescale-title-medium-tracking:  0.15px;
+  --md-sys-typescale-title-small-tracking:   0.1px;
+  --md-sys-typescale-body-large-tracking:    0.5px;
+  --md-sys-typescale-body-medium-tracking:   0.25px;
+  --md-sys-typescale-body-small-tracking:    0.4px;
+  --md-sys-typescale-label-large-tracking:   0.1px;
+  --md-sys-typescale-label-medium-tracking:  0.5px;
+  --md-sys-typescale-label-small-tracking:   0.5px;
+
+  /* ── MD3 Shape scale ────────────────────────────────────────────────────── */
+  --md-sys-shape-corner-none:        0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small:       8px;
+  --md-sys-shape-corner-medium:      12px;
+  --md-sys-shape-corner-large:       16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full:        9999px;
+
+  /* ── MD3 Elevation (dp → box-shadow for the rare cases MD3 uses shadows) ── */
+  --md-sys-elevation-level0: none;
+  --md-sys-elevation-level1: 0 1px 2px rgba(0,0,0,.3),  0 1px 3px 1px rgba(0,0,0,.15);
+  --md-sys-elevation-level2: 0 1px 2px rgba(0,0,0,.3),  0 2px 6px 2px rgba(0,0,0,.15);
+  --md-sys-elevation-level3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px rgba(0,0,0,.3);
+  --md-sys-elevation-level4: 0 6px 10px 4px rgba(0,0,0,.15),0 2px 3px rgba(0,0,0,.3);
+  --md-sys-elevation-level5: 0 8px 12px 6px rgba(0,0,0,.15),0 4px 4px rgba(0,0,0,.3);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  width: 100%; height: 100%;
-  font-family: var(--font-sans);
-  background: var(--color-bg);
-  color: var(--color-text);
-  overflow: hidden;
+  width: 100%; height: 100%; overflow: hidden;
+  font: var(--md-sys-typescale-body-medium);
+  letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Scrollable inner content (not the page itself) */
-.scroll { overflow-y: auto; }
-.scroll::-webkit-scrollbar { width: 4px; }
-.scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+/* ── MD3 State layer mixin ─────────────────────────────────────────────────── */
+/* Apply .md3-state-layer to any interactive container.
+   The ::before overlay uses the on-surface token for neutral states.
+   Override --state-color on primary/secondary containers as needed.    */
+.md3-state-layer {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.md3-state-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--state-color, var(--md-sys-color-on-surface));
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+.md3-state-layer:hover::before              { opacity: 0.08; }
+.md3-state-layer:focus-visible::before      { opacity: 0.12; }
+.md3-state-layer:active::before             { opacity: 0.12; }
+
+/* ── Scrollbars (MD3-neutral) ───────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 4px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: var(--md-sys-color-outline-variant); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--md-sys-color-outline); }

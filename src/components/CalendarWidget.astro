@@ -1,66 +1,82 @@
 ---
 /**
- * CalendarWidget.astro — upcoming Google Calendar events.
- * Reads from the Google Calendar API via src/lib/google.js.
- * Caches the last result in chrome.storage.local so stale data shows instantly.
+ * CalendarWidget — MD3 Elevated Card containing a 2-line List.
+ *
+ * Card spec: bg=surfaceContainerLow, elevation-level1 shadow,
+ *            shape=large (16dp corners), no outline.
+ *
+ * List item spec (2-line): h=72dp, leading=40dp avatar container,
+ *   headline=bodyLarge, supporting=bodyMedium/onSurfaceVariant.
  */
 ---
 
-<section class="widget" id="calendar-widget">
-  <h2 class="widget-title">
-    <span>📅</span> Calendar
-    <button class="widget-refresh" id="cal-refresh" title="Refresh">↻</button>
-  </h2>
-  <ul class="event-list scroll" id="event-list">
-    <li class="placeholder">Loading…</li>
+<div class="md3-card--elevated">
+  <!-- Card header -->
+  <div class="card-header">
+    <span class="card-header__title">Upcoming</span>
+    <button class="icon-btn md3-state-layer" id="cal-refresh" title="Refresh" aria-label="Refresh calendar">
+      <!-- MD3 icon button: 48dp tap target, 24dp icon -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- MD3 List -->
+  <ul class="md3-list" id="event-list" role="list">
+    <li class="list-item--placeholder">Loading…</li>
   </ul>
-</section>
+</div>
 
 <script>
   import { getUpcomingEvents } from '../lib/google.js';
   import { storageGet, storageSet } from '../lib/storage.js';
 
-  const list = document.getElementById('event-list');
-
-  function fmt(isoOrDate) {
+  function fmtTime(iso) {
     try {
-      const d = new Date(isoOrDate);
-      return d.toLocaleString(undefined, {
+      return new Date(iso).toLocaleString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit',
       });
-    } catch { return isoOrDate; }
+    } catch { return iso; }
   }
 
   function render(events) {
+    const list = document.getElementById('event-list');
     if (!list) return;
     if (!events.length) {
-      list.innerHTML = '<li class="placeholder">No upcoming events</li>';
+      list.innerHTML = '<li class="list-item--placeholder">No upcoming events</li>';
       return;
     }
     list.innerHTML = events.map(e => `
-      <li class="event-item ${e.allDay ? 'all-day' : ''}">
-        <span class="event-time">${e.allDay ? 'All day' : fmt(e.start)}</span>
-        <span class="event-title">${e.title}</span>
-        ${e.location ? `<span class="event-loc">📍 ${e.location}</span>` : ''}
+      <li class="md3-list-item md3-list-item--two-line md3-state-layer">
+        <!-- Leading avatar container (primaryContainer color) -->
+        <div class="list-item__leading list-item__leading--calendar" aria-hidden="true">
+          📅
+        </div>
+        <div class="list-item__content">
+          <span class="list-item__headline">${e.title}</span>
+          <span class="list-item__supporting">
+            ${e.allDay ? 'All day' : fmtTime(e.start)}
+            ${e.location ? ` · ${e.location}` : ''}
+          </span>
+        </div>
       </li>
     `).join('');
   }
 
   async function load(force = false) {
-    // Show cached events immediately, then refresh in background.
     const { cachedEvents } = await storageGet('cachedEvents');
     if (cachedEvents) render(cachedEvents);
-
-    if (!force && cachedEvents) return; // serve cache on initial load
-
+    if (!force && cachedEvents) return;
     try {
       const events = await getUpcomingEvents(8);
       await storageSet({ cachedEvents: events });
       render(events);
     } catch (err) {
-      if (!cachedEvents) {
-        list.innerHTML = `<li class="placeholder error">⚠ ${err.message}</li>`;
+      const list = document.getElementById('event-list');
+      if (list && !await storageGet('cachedEvents').then(r => r.cachedEvents)) {
+        list.innerHTML = `<li class="list-item--placeholder list-item--error">⚠ ${err.message}</li>`;
       }
     }
   }
@@ -70,34 +86,110 @@
 </script>
 
 <style>
-  .widget { display: flex; flex-direction: column; gap: 10px; height: 100%; }
-  .widget-title {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
-    text-transform: uppercase; color: var(--color-text-muted);
+  /* ── MD3 Elevated Card ────────────────────────────────────────────── */
+  /* spec: bg=surfaceContainerLow, elevation-1, shape=large (16dp)      */
+  .md3-card--elevated {
+    display: flex;
+    flex-direction: column;
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-corner-large);
+    box-shadow: var(--md-sys-elevation-level1);
+    padding: 16px 0 8px;
+    height: 100%;
+    overflow: hidden;
   }
-  .widget-refresh {
-    margin-left: auto; background: none; border: none;
-    color: var(--color-text-muted); cursor: pointer; font-size: 15px;
-    transition: color 0.15s;
+
+  /* ── Card header ─────────────────────────────────────────────────── */
+  .card-header {
+    display: flex;
+    align-items: center;
+    padding: 0 16px 8px;
+    gap: 4px;
   }
-  .widget-refresh:hover { color: var(--color-accent); }
-
-  .event-list { list-style: none; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-
-  .event-item {
-    display: flex; flex-direction: column; gap: 2px;
-    padding: 8px 10px;
-    background: var(--color-surface);
-    border-left: 3px solid var(--color-accent);
-    border-radius: var(--radius-sm);
+  .card-header__title {
+    flex: 1;
+    font: var(--md-sys-typescale-title-medium);
+    letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+    color: var(--md-sys-color-on-surface);
   }
-  .event-item.all-day { border-left-color: var(--prussian-blue); }
 
-  .event-time  { font-size: 11px; color: var(--color-text-muted); }
-  .event-title { font-size: 13px; font-weight: 500; }
-  .event-loc   { font-size: 11px; color: var(--color-text-muted); }
+  /* ── MD3 Icon button (48dp tap target, 24dp icon) ─────────────────── */
+  .icon-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: none; background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    --state-color: var(--md-sys-color-on-surface-variant);
+    transition: color 200ms;
+  }
+  .icon-btn:hover { color: var(--md-sys-color-on-surface); }
 
-  .placeholder { color: var(--color-text-muted); font-size: 13px; padding: 8px 0; }
-  .placeholder.error { color: #e0725a; }
+  /* ── MD3 List ─────────────────────────────────────────────────────── */
+  .md3-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* ── MD3 Two-line List Item ──────────────────────────────────────── */
+  /* spec: h=72dp, px=16dp, leading=40dp, gap between leading/text=16dp */
+  .md3-list-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 72px;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: inherit;
+    --state-color: var(--md-sys-color-on-surface);
+  }
+
+  /* Leading element — 40×40 avatar container */
+  .list-item__leading {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: var(--md-sys-shape-corner-full);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .list-item__leading--calendar {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+  }
+  .list-item__leading--email {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  /* Text block */
+  .list-item__content {
+    flex: 1;
+    display: flex; flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .list-item__headline {
+    font: var(--md-sys-typescale-body-large);
+    letter-spacing: var(--md-sys-typescale-body-large-tracking);
+    color: var(--md-sys-color-on-surface);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .list-item__supporting {
+    font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Placeholder / error states */
+  .list-item--placeholder {
+    padding: 16px;
+    font: var(--md-sys-typescale-body-medium);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .list-item--error { color: var(--md-sys-color-error); }
 </style>
