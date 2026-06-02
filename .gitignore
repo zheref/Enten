@@ -8,6 +8,10 @@ desktop.ini
 .vscode/
 *.sublime-workspace
 
+# ─── Chrome runtime cache ─────────────────────────────────────────────────────
+# Chrome writes this file into the extension folder while it's loaded unpacked.
+Cached Theme.pak
+
 # ─── Chrome package artefacts ─────────────────────────────────────────────────
 # The .crx is the signed package you upload; never commit it — generate on demand.
 *.crx
