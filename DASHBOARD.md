@@ -9,22 +9,41 @@ fully working personal dashboard — and what to expect at each step.
 
 ```
 src/
-├── pages/index.astro           ← Full NTP layout (bg image + 3-column grid)
+├── pages/index.astro           ← Desktop shell: wallpaper, draggable widgets, shelf
 ├── components/
-│   ├── Shortcuts.astro         ← Persisted app-icon grid
-│   ├── CalendarWidget.astro    ← Google Calendar (upcoming events)
-│   ├── EmailWidget.astro       ← Gmail (recent inbox)
-│   └── AuthPanel.astro         ← Google sign-in / sign-out
+│   ├── Shortcuts.astro         ← Shelf app icons (favicons, configurable scale/elevation)
+│   ├── CalendarWidget.astro    ← Google Calendar card (md-elevated-card + md-list)
+│   ├── EmailWidget.astro       ← Gmail card (md-elevated-card + md-list)
+│   └── StatusArea.astro        ← Auth (md-text-button) · theme toggle (md segmented) · clock
 ├── lib/
 │   ├── google.js               ← chrome.identity + Calendar + Gmail API calls
-│   └── storage.js              ← chrome.storage.local wrapper
-└── styles/theme.css            ← SergioSwift CSS variables + base reset
+│   ├── storage.js              ← chrome.storage.local wrapper
+│   └── md-components.ts         ← Registers the Material Web (md-*) custom elements
+└── styles/theme.css            ← MD3 token sheet (light/dark) + global component layer
 
 public/                         ← Copied verbatim to dist/ by Astro
-├── manifest.json               ← Full extension manifest (v2.0.0)
+├── manifest.json               ← Full extension manifest
 ├── background.js               ← MV3 service worker
-└── images/naruto-swift.png     ← NTP wallpaper
+└── images/naruto-swift.png     ← Wallpaper
 ```
+
+### Material Design 3 — official components
+
+The UI is built on **[@material/web](https://github.com/material-components/material-web)**
+(Google's official Material Web Components): `md-elevated-card`, `md-list` /
+`md-list-item`, `md-icon-button`, `md-filled-button`, `md-text-button`,
+`md-fab`, and `md-outlined-segmented-button(-set)`. They render canonical MD3
+behaviour — notably `md-elevation` (shadow **plus** surface-tint, auto-tonal in
+dark mode), ripples, and typography.
+
+They read our `--md-sys-*` tokens from `theme.css`, so the SergioSwift palette
+and light/dark switching apply to them automatically. All `md-*` elements are
+registered once via `src/lib/md-components.ts`, imported from the page script.
+
+> The colour tokens in `theme.css` are still hand-authored approximations of the
+> brand palette's tonal ramps. To make them algorithmically exact, generate them
+> with `@material/material-color-utilities` from the source hex codes — a good
+> follow-up, but not required for the components to work.
 
 ---
 

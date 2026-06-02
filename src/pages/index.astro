@@ -44,15 +44,12 @@ import '../styles/theme.css';
   -->
   <nav class="shelf" aria-label="Shelf">
     <div class="shelf__left">
-      <button
-        class="launcher-fab md3-state-layer"
-        aria-label="Show all apps"
-        title="All apps"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <!-- Official MD3 Small FAB (canonical elevation + ripple) -->
+      <md-fab size="small" class="launcher-fab" aria-label="Show all apps" title="All apps">
+        <svg slot="icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
         </svg>
-      </button>
+      </md-fab>
       <div class="shelf__divider" aria-hidden="true"></div>
       <Shortcuts />
     </div>
@@ -66,6 +63,8 @@ import '../styles/theme.css';
 
 <!-- ── Widget drag & restore ──────────────────────────────────────── -->
 <script>
+  // Register all Material Web Components (defines <md-*> custom elements).
+  import '../lib/md-components.ts';
   import { storageGet, storageSet } from '../lib/storage.js';
 
   const SHELF_CLEARANCE = 56 + 16; // shelf height + safety gap
@@ -222,21 +221,7 @@ import '../styles/theme.css';
     margin: 0 6px; flex-shrink: 0;
   }
 
-  /* ── MD3 Small FAB — launcher ────────────────────────────────────── */
-  /* spec: 40dp, shape=medium (12dp), surfaceContainerHigh, primary icon */
-  .launcher-fab {
-    display: flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px;
-    border-radius: var(--md-sys-shape-corner-medium);
-    border: none;
-    background: var(--md-sys-color-surface-container-high);
-    color: var(--md-sys-color-primary);
-    cursor: pointer;
-    flex-shrink: 0;
-    --state-color: var(--md-sys-color-primary);
-    /* FAB gets its own elevation-3 — shelf shadow is separate */
-    box-shadow: var(--md-sys-elevation-level3);
-    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-  .launcher-fab:hover { box-shadow: var(--md-sys-elevation-level4); }
+  /* ── MD3 Small FAB — launcher (official md-fab) ──────────────────── */
+  /* md-fab supplies canonical elevation + ripple; we just place it. */
+  .launcher-fab { flex-shrink: 0; }
 </style>

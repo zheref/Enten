@@ -1,19 +1,18 @@
 ---
 /**
- * CalendarWidget — MD3 Elevated Card, desktop floating style.
+ * CalendarWidget — official MD3 components.
+ *   <md-elevated-card>  → canonical elevation (shadow + surface tint)
+ *   <md-list>/<md-list-item> → MD3 list with built-in ripple & typography
+ *   <md-icon-button>    → refresh action
+ *   <md-filled-button>  → sign-in CTA in the empty state
  *
- * Shadow rules (MD3):
- *   Light scheme → surfaceContainerLow + elevation-level1 box-shadow
- *   Dark scheme  → surfaceContainerHigh (tonal elevation, no shadow)
- *   The card header acts as the drag handle ([data-drag-handle]).
- *
- * Empty state: shown when no cache AND API fails, with a Sign-in CTA.
+ * The header is the drag handle ([data-drag-handle]).
  */
 ---
 
-<div class="md3-card">
+<md-elevated-card class="md3-card">
 
-  <!-- Drag handle + header ────────────────────────────────────────── -->
+  <!-- Header / drag handle -->
   <div class="card-header" data-drag-handle>
     <span class="card-header__icon" aria-hidden="true">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -21,19 +20,19 @@
       </svg>
     </span>
     <span class="card-header__title">Upcoming</span>
-    <button class="icon-btn md3-state-layer" id="cal-refresh" aria-label="Refresh calendar">
+    <md-icon-button id="cal-refresh" aria-label="Refresh calendar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
       </svg>
-    </button>
+    </md-icon-button>
   </div>
 
-  <!-- List / empty state ──────────────────────────────────────────── -->
-  <ul class="md3-list" id="event-list" role="list">
-    <li class="placeholder">Loading…</li>
-  </ul>
+  <!-- List / empty state -->
+  <md-list id="event-list" class="md3-list">
+    <div class="placeholder">Loading…</div>
+  </md-list>
 
-</div>
+</md-elevated-card>
 
 <script>
   import { getUpcomingEvents } from '../lib/google.js';
@@ -50,33 +49,34 @@
     } catch { return iso; }
   }
 
+  function esc(s: string) {
+    return String(s).replace(/[&<>"]/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  }
+
   function renderEvents(events: any[]) {
     const list = listEl(); if (!list) return;
     if (!events.length) {
-      list.innerHTML = '<li class="placeholder">No upcoming events</li>';
+      list.innerHTML = '<div class="placeholder">No upcoming events</div>';
       return;
     }
     list.innerHTML = events.map((e: any) => `
-      <li class="md3-list-item md3-state-layer">
-        <div class="leading leading--primary" aria-hidden="true">
+      <md-list-item type="text">
+        <div slot="start" class="leading leading--primary" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm.01 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
           </svg>
         </div>
-        <div class="item-content">
-          <span class="item-headline">${e.title}</span>
-          <span class="item-supporting">
-            ${e.allDay ? 'All day' : fmtTime(e.start)}${e.location ? ` · ${e.location}` : ''}
-          </span>
-        </div>
-      </li>
+        <div slot="headline">${esc(e.title)}</div>
+        <div slot="supporting-text">${e.allDay ? 'All day' : esc(fmtTime(e.start))}${e.location ? ' · ' + esc(e.location) : ''}</div>
+      </md-list-item>
     `).join('');
   }
 
   function renderAuthCTA() {
     const list = listEl(); if (!list) return;
     list.innerHTML = `
-      <li class="empty-state">
+      <div class="empty-state">
         <div class="empty-state__icon" aria-hidden="true">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/>
@@ -84,8 +84,8 @@
         </div>
         <p class="empty-state__headline">No calendar connected</p>
         <p class="empty-state__body">Sign in with Google to see your upcoming events here.</p>
-        <button class="md3-btn--filled" id="cal-signin">Sign in with Google</button>
-      </li>
+        <md-filled-button id="cal-signin">Sign in with Google</md-filled-button>
+      </div>
     `;
     document.getElementById('cal-signin')?.addEventListener('click', triggerAuth);
   }
@@ -126,31 +126,22 @@
 </script>
 
 <style>
-  /* ── MD3 Elevated Card ─────────────────────────────────────────────
-     Light: surfaceContainerLow + single elevation-level1 shadow.
-     Dark:  surfaceContainerHigh (tonal elevation) + no shadow.
-     No backdrop-filter — solid surface avoids perceptual doubling.   */
+  /* ── Card host ──────────────────────────────────────────────────────
+     md-elevated-card supplies canonical MD3 elevation (shadow + surface
+     tint, auto-tonal in dark). We only lay out its slotted children.   */
   .md3-card {
     display: flex; flex-direction: column;
     height: 100%;
-    background: var(--md-sys-color-surface-container-low);
-    border-radius: var(--md-sys-shape-corner-large);
-    /* Correct MD3 level-1: single box-shadow declaration, two layers  */
-    box-shadow: var(--md-sys-elevation-level1);
     overflow: hidden;
-  }
-  /* Dark scheme: tonal elevation, no shadow */
-  :global(.dark-scheme) .md3-card {
-    background: var(--md-sys-color-surface-container-high);
-    box-shadow: none;
+    --md-elevated-card-container-shape: var(--md-sys-shape-corner-large);
   }
 
-  /* Card header — also the drag handle */
+  /* Header — also the drag handle */
   .card-header {
     display: flex; align-items: center; gap: 8px;
-    padding: 12px 16px;
+    padding: 8px 8px 8px 16px;
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
-    user-select: none;     /* prevent text selection while dragging */
+    user-select: none;
     flex-shrink: 0;
   }
   .card-header__icon { color: var(--md-sys-color-primary); display: flex; }
@@ -160,29 +151,14 @@
     letter-spacing: var(--md-sys-typescale-title-medium-tracking);
     color: var(--md-sys-color-on-surface);
   }
+  #cal-refresh { color: var(--md-sys-color-on-surface-variant); }
 
-  /* MD3 Icon button — 40dp tap target */
-  .icon-btn {
-    display: flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px;
-    border-radius: var(--md-sys-shape-corner-full);
-    border: none; background: transparent;
-    color: var(--md-sys-color-on-surface-variant); cursor: pointer;
-    --state-color: var(--md-sys-color-on-surface-variant);
-    transition: color 200ms;
-  }
-  .icon-btn:hover { color: var(--md-sys-color-on-surface); }
-
-  /* MD3 List — inset with padding so items don't touch card edges */
+  /* MD3 List — transparent so the card surface shows through */
   .md3-list {
-    list-style: none;
-    display: flex; flex-direction: column; gap: 2px;
-    overflow-y: auto; flex: 1;
-    padding: 8px;
+    flex: 1; overflow-y: auto; padding: 8px;
+    --md-list-container-color: transparent;
   }
 
-  /* NOTE: list items, leading avatars, text, empty-state, filled button and
-     the placeholder message are injected at runtime, so their styles live in
-     the GLOBAL MD3 component layer in src/styles/theme.css (Astro scoped
-     styles won't match innerHTML-injected nodes). */
+  /* NOTE: .leading / .empty-state* / .placeholder live in the global MD3
+     component layer (theme.css) because they're injected at runtime. */
 </style>

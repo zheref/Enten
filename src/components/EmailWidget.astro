@@ -1,13 +1,13 @@
 ---
 /**
- * EmailWidget — MD3 Elevated Card, desktop floating style.
- * Same shadow/surface rules as CalendarWidget.
- * Card header = drag handle ([data-drag-handle]).
- * Empty state with Sign-in CTA when auth is needed.
+ * EmailWidget — official MD3 components (mirrors CalendarWidget).
+ * Uses md-list-item slots: overline (sender), headline (subject),
+ * supporting-text (snippet), start (monogram avatar), end (unread dot).
+ * Header is the drag handle.
  */
 ---
 
-<div class="md3-card">
+<md-elevated-card class="md3-card">
 
   <div class="card-header" data-drag-handle>
     <span class="card-header__icon" aria-hidden="true">
@@ -16,18 +16,18 @@
       </svg>
     </span>
     <span class="card-header__title">Inbox</span>
-    <button class="icon-btn md3-state-layer" id="email-refresh" aria-label="Refresh inbox">
+    <md-icon-button id="email-refresh" aria-label="Refresh inbox">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
       </svg>
-    </button>
+    </md-icon-button>
   </div>
 
-  <ul class="md3-list" id="email-list" role="list">
-    <li class="placeholder">Loading…</li>
-  </ul>
+  <md-list id="email-list" class="md3-list">
+    <div class="placeholder">Loading…</div>
+  </md-list>
 
-</div>
+</md-elevated-card>
 
 <script>
   import { getRecentEmails } from '../lib/google.js';
@@ -41,31 +41,34 @@
   }
   const initial = (from: string) => displayName(from).charAt(0).toUpperCase() || '?';
 
+  function esc(s: string) {
+    return String(s).replace(/[&<>"]/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  }
+
   function renderEmails(emails: any[]) {
     const list = listEl(); if (!list) return;
     if (!emails.length) {
-      list.innerHTML = '<li class="placeholder">Inbox is empty</li>';
+      list.innerHTML = '<div class="placeholder">Inbox is empty</div>';
       return;
     }
     list.innerHTML = emails.map((e: any) => `
-      <li class="md3-list-item three-line md3-state-layer ${e.unread ? 'unread' : ''}">
-        <div class="leading ${e.unread ? 'leading--primary' : 'leading--secondary'}" aria-hidden="true">
-          ${initial(e.from)}
+      <md-list-item type="text" class="${e.unread ? 'unread' : ''}">
+        <div slot="start" class="leading ${e.unread ? 'leading--primary' : 'leading--secondary'}" aria-hidden="true">
+          ${esc(initial(e.from))}
         </div>
-        <div class="item-content">
-          <span class="item-overline">${displayName(e.from)}</span>
-          <span class="item-headline">${e.subject}</span>
-          <span class="item-supporting">${e.snippet}</span>
-        </div>
-        ${e.unread ? '<span class="unread-dot" aria-label="Unread"></span>' : ''}
-      </li>
+        <div slot="overline">${esc(displayName(e.from))}</div>
+        <div slot="headline">${esc(e.subject)}</div>
+        <div slot="supporting-text">${esc(e.snippet)}</div>
+        ${e.unread ? '<div slot="end" class="unread-dot" aria-label="Unread"></div>' : ''}
+      </md-list-item>
     `).join('');
   }
 
   function renderAuthCTA() {
     const list = listEl(); if (!list) return;
     list.innerHTML = `
-      <li class="empty-state">
+      <div class="empty-state">
         <div class="empty-state__icon" aria-hidden="true">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
@@ -73,8 +76,8 @@
         </div>
         <p class="empty-state__headline">No inbox connected</p>
         <p class="empty-state__body">Sign in with Google to preview your latest messages here.</p>
-        <button class="md3-btn--filled" id="email-signin">Sign in with Google</button>
-      </li>
+        <md-filled-button id="email-signin">Sign in with Google</md-filled-button>
+      </div>
     `;
     document.getElementById('email-signin')?.addEventListener('click', triggerAuth);
   }
@@ -115,25 +118,15 @@
 </script>
 
 <style>
-  /* ── MD3 Elevated Card ──────────────────────────────────────────────
-     Single shadow definition, no backdrop-filter (avoids doubling).
-     Dark mode overrides to tonal surface + no shadow.               */
   .md3-card {
     display: flex; flex-direction: column;
     height: 100%;
-    background: var(--md-sys-color-surface-container-low);
-    border-radius: var(--md-sys-shape-corner-large);
-    box-shadow: var(--md-sys-elevation-level1);
     overflow: hidden;
+    --md-elevated-card-container-shape: var(--md-sys-shape-corner-large);
   }
-  :global(.dark-scheme) .md3-card {
-    background: var(--md-sys-color-surface-container-high);
-    box-shadow: none;
-  }
-
   .card-header {
     display: flex; align-items: center; gap: 8px;
-    padding: 12px 16px;
+    padding: 8px 8px 8px 16px;
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
     user-select: none; flex-shrink: 0;
   }
@@ -144,25 +137,13 @@
     letter-spacing: var(--md-sys-typescale-title-medium-tracking);
     color: var(--md-sys-color-on-surface);
   }
-  .icon-btn {
-    display: flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px;
-    border-radius: var(--md-sys-shape-corner-full);
-    border: none; background: transparent;
-    color: var(--md-sys-color-on-surface-variant); cursor: pointer;
-    --state-color: var(--md-sys-color-on-surface-variant);
-    transition: color 200ms;
-  }
-  .icon-btn:hover { color: var(--md-sys-color-on-surface); }
+  #email-refresh { color: var(--md-sys-color-on-surface-variant); }
 
-  /* MD3 List — inset with padding so items don't touch card edges */
   .md3-list {
-    list-style: none; display: flex; flex-direction: column; gap: 2px;
-    overflow-y: auto; flex: 1; padding: 8px;
+    flex: 1; overflow-y: auto; padding: 8px;
+    --md-list-container-color: transparent;
   }
 
-  /* NOTE: list items (with .three-line modifier), avatars, text, unread dot,
-     empty-state, filled button and the placeholder message are injected at
-     runtime, so their styles live in the GLOBAL MD3 component layer in
-     src/styles/theme.css (Astro scoped styles won't match innerHTML nodes). */
+  /* Unread subject highlight (md-list-item headline slot) */
+  .unread { --md-list-item-label-text-color: var(--md-sys-color-primary); }
 </style>

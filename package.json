@@ -9,5 +9,8 @@
   },
   "devDependencies": {
     "astro": "^4.16.0"
+  },
+  "dependencies": {
+    "@material/web": "^2.4.1"
   }
 }
