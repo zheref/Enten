@@ -121,8 +121,9 @@
   .md3-card {
     display: flex; flex-direction: column;
     height: 100%;
-    /* No overflow:hidden — it would clip md-elevated-card's elevation shadow. */
-    --md-elevated-card-container-shape: var(--md-sys-shape-corner-large);
+    /* No overflow:hidden — it would clip md-elevated-card's elevation shadow.
+       Shape/elevation/colour kept at canonical md-elevated-card defaults
+       (corner medium 12dp, elevation level 1, surface-container-low). */
   }
   .card-header {
     display: flex; align-items: center; gap: 8px;
@@ -139,8 +140,9 @@
   }
   #email-refresh { color: var(--md-sys-color-on-surface-variant); }
 
+  /* MD3 List — canonical 8dp block padding (md-list default); transparent. */
   .md3-list {
-    flex: 1; overflow-y: auto; padding: 8px;
+    flex: 1; overflow-y: auto;
     --md-list-container-color: transparent;
   }
 
