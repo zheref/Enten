@@ -22,7 +22,6 @@ import '@material/web/icon/icon.js';
 import '@material/web/iconbutton/icon-button.js';
 import '@material/web/button/filled-button.js';
 import '@material/web/button/text-button.js';
-import '@material/web/fab/fab.js';
 import '@material/web/labs/card/elevated-card.js';
 import '@material/web/labs/segmentedbutton/outlined-segmented-button.js';
 import '@material/web/labs/segmentedbuttonset/outlined-segmented-button-set.js';

@@ -43,14 +43,13 @@ import '../styles/theme.css';
     Right: status area (auth · theme toggle · clock)
   -->
   <nav class="shelf" aria-label="Shelf">
-    <!-- Left zone: launcher -->
+    <!-- Left zone: launcher glyph (decorative — flat, non-interactive) -->
     <div class="shelf__zone shelf__zone--start">
-      <!-- Official MD3 Small FAB (canonical elevation + ripple) -->
-      <md-fab size="small" class="launcher-fab" aria-label="Show all apps" title="All apps">
-        <svg slot="icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <span class="launcher" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
           <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
         </svg>
-      </md-fab>
+      </span>
     </div>
 
     <!-- Center zone: app shortcuts (horizontally centred in the bar) -->
@@ -224,7 +223,13 @@ import '../styles/theme.css';
   .shelf__zone--center { justify-content: center; }
   .shelf__zone--end    { justify-content: flex-end; }
 
-  /* ── MD3 Small FAB — launcher (official md-fab) ──────────────────── */
-  /* md-fab supplies canonical elevation + ripple; we just place it. */
-  .launcher-fab { flex-shrink: 0; }
+  /* ── Launcher glyph — flat, non-interactive decoration ───────────── */
+  .launcher {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    pointer-events: none;       /* no clicks */
+    /* no background, no elevation, no hover/ripple */
+  }
 </style>
