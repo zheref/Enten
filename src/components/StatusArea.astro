@@ -30,8 +30,6 @@
         </svg>
       </md-menu-item>
 
-      <md-divider></md-divider>
-
       <md-menu-item id="auth-action" data-action="signin">
         <div slot="headline" id="auth-action-label">Sign in with Google</div>
         <svg slot="start" id="auth-action-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -71,11 +69,11 @@
     </md-menu>
   </div>
 
-  <!-- Clock -->
-  <div class="clock" aria-live="polite" aria-label="Current time">
+  <!-- Clock — interactive button (hover state layer; no action yet) -->
+  <button type="button" class="clock md3-state-layer" aria-label="Current time">
     <span class="clock__time" id="clock-time">--:--</span>
     <span class="clock__date" id="clock-date"></span>
-  </div>
+  </button>
 
 </div>
 
@@ -290,18 +288,21 @@
   #theme-menu md-menu-item:last-of-type,
   #auth-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
 
-  /* Divider inset to align with the pill margins. */
-  #auth-menu md-divider {
-    margin: 4px 12px;
-    --md-divider-color: var(--md-sys-color-outline-variant);
-  }
-
-  /* ── Clock ──────────────────────────────────────────────────────── */
+  /* ── Clock (interactive button with MD3 hover state layer) ───────── */
   .clock {
     display: flex; flex-direction: column; align-items: flex-end;
-    padding: 0 8px 0 4px;
-    min-width: 72px;
+    justify-content: center;
+    height: 40px; min-width: 72px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    border-radius: var(--md-sys-shape-corner-full);
+    cursor: pointer;
+    font-family: inherit;
+    --state-color: var(--md-sys-color-on-surface);
   }
+  /* Keep text above the state-layer ::before overlay (z-index 1) */
+  .clock__time, .clock__date { position: relative; z-index: 2; }
   .clock__time {
     font: var(--md-sys-typescale-title-small);
     letter-spacing: var(--md-sys-typescale-title-small-tracking);
