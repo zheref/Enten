@@ -261,6 +261,38 @@
     --md-menu-item-leading-icon-color: var(--md-sys-color-on-surface-variant);
   }
 
+  /* ── M3 Expressive "vertical menu" treatment ───────────────────────────────
+     @material/web ships BASELINE M3 (4dp container, full-width square items).
+     M3 Expressive vertical menus are rounder: a large-radius container holding
+     inset, pill-shaped items, where hover/selected paints a fully-rounded
+     state layer / secondary-container fill.
+
+     We can reshape the items because md-menu-item's internal .list-item / md-item
+     use `border-radius: inherit` — so a border-radius on the host cascades to the
+     ripple, the selected fill, and the content. */
+  #theme-menu, #auth-menu {
+    --md-menu-container-shape: var(--md-sys-shape-corner-extra-large); /* 28dp */
+    --md-menu-top-space: 8px;
+    --md-menu-bottom-space: 8px;
+  }
+  #theme-menu md-menu-item,
+  #auth-menu  md-menu-item {
+    border-radius: var(--md-sys-shape-corner-full); /* pill state layer + selection */
+    margin: 2px 8px;                                 /* inset from container edges */
+  }
+  /* Slightly more breathing room at the very top/bottom so pills clear the
+     container's large rounded corners. */
+  #theme-menu md-menu-item:first-of-type,
+  #auth-menu  md-menu-item:first-of-type { margin-top: 4px; }
+  #theme-menu md-menu-item:last-of-type,
+  #auth-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
+
+  /* Divider inset to align with the pill margins. */
+  #auth-menu md-divider {
+    margin: 4px 12px;
+    --md-divider-color: var(--md-sys-color-outline-variant);
+  }
+
   /* ── Clock ──────────────────────────────────────────────────────── */
   .clock {
     display: flex; flex-direction: column; align-items: flex-end;
