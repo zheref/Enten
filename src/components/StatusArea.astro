@@ -1,7 +1,7 @@
 ---
 /**
  * StatusArea — Chrome OS-style system tray for the shelf's right side.
- *   Auth (md-text-button) · Theme toggle (md-outlined-segmented-button-set) · Clock
+ *   Auth (md-text-button) · Theme toggle (md-icon-button + md-menu) · Clock
  *
  * Theme toggle cycles light / auto / dark, persisted in chrome.storage.local
  * as { themeMode }, applied by toggling .dark-scheme on <html>.
@@ -18,24 +18,44 @@
     <span id="auth-label">Sign in</span>
   </md-text-button>
 
-  <!-- Theme mode — official MD3 outlined segmented button set -->
-  <md-outlined-segmented-button-set id="theme-set" aria-label="Color theme">
-    <md-outlined-segmented-button data-mode="light" title="Light mode">
-      <svg slot="icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0zM7.05 18.36l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.99.99 0 0 0-1.41 0z"/>
-      </svg>
-    </md-outlined-segmented-button>
-    <md-outlined-segmented-button data-mode="auto" selected title="Auto (system)">
-      <svg slot="icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
-      </svg>
-    </md-outlined-segmented-button>
-    <md-outlined-segmented-button data-mode="dark" title="Dark mode">
-      <svg slot="icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
-      </svg>
-    </md-outlined-segmented-button>
-  </md-outlined-segmented-button-set>
+  <!-- Theme mode — borderless icon button (current theme glyph) + MD3 menu -->
+  <div class="theme-toggle">
+    <md-icon-button id="theme-btn" title="Change theme"
+                    aria-label="Change theme" aria-haspopup="menu" aria-expanded="false">
+      <!-- Current-theme glyph is injected by the script -->
+    </md-icon-button>
+
+    <md-menu id="theme-menu" anchor="theme-btn" positioning="fixed"
+             anchor-corner="start-start" menu-corner="end-start">
+      <md-menu-item data-mode="light">
+        <div slot="headline">Light</div>
+        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0zM7.05 18.36l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.99.99 0 0 0-1.41 0z"/>
+        </svg>
+        <svg slot="end" class="check" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+      </md-menu-item>
+      <md-menu-item data-mode="auto">
+        <div slot="headline">Automatic</div>
+        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
+        </svg>
+        <svg slot="end" class="check" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+      </md-menu-item>
+      <md-menu-item data-mode="dark">
+        <div slot="headline">Dark</div>
+        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+        </svg>
+        <svg slot="end" class="check" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+      </md-menu-item>
+    </md-menu>
+  </div>
 
   <!-- Clock -->
   <div class="clock" aria-live="polite" aria-label="Current time">
@@ -50,6 +70,22 @@
   import { signOut } from '../lib/google.js';
 
   // ── Theme ─────────────────────────────────────────────────────────────────
+  // SVG glyph (24×24 path) for each mode — shown on the toggle button.
+  const GLYPHS: Record<string, string> = {
+    light: '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0zM7.05 18.36l-1.06 1.06a.996.996 0 0 0 0 1.41c.39.39 1.03.39 1.41 0l1.06-1.06a.996.996 0 0 0 0-1.41.99.99 0 0 0-1.41 0z"/>',
+    auto:  '<path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>',
+    dark:  '<path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>',
+  };
+
+  const themeBtn  = document.getElementById('theme-btn');
+  const themeMenu = document.getElementById('theme-menu') as any;
+
+  function setButtonGlyph(mode: string) {
+    if (!themeBtn) return;
+    themeBtn.innerHTML =
+      `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${GLYPHS[mode] ?? GLYPHS.auto}</svg>`;
+  }
+
   function applyTheme(mode: string) {
     const root = document.documentElement;
     if (mode === 'dark') {
@@ -60,9 +96,10 @@
     } else {
       root.classList.remove('dark-scheme');
     }
-    // Reflect selection on the official segmented buttons
-    document.querySelectorAll('md-outlined-segmented-button').forEach(btn => {
-      (btn as any).selected = (btn as HTMLElement).dataset.mode === mode;
+    setButtonGlyph(mode);
+    // Mark the active menu item (shows its trailing check)
+    document.querySelectorAll('#theme-menu md-menu-item').forEach(item => {
+      item.classList.toggle('active', (item as HTMLElement).dataset.mode === mode);
     });
   }
 
@@ -71,11 +108,23 @@
     applyTheme(themeMode ?? 'auto');
   }
 
-  document.querySelectorAll('md-outlined-segmented-button').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const mode = (btn as HTMLElement).dataset.mode ?? 'auto';
+  // Open the menu from the toggle button.
+  themeBtn?.addEventListener('click', () => {
+    if (themeMenu) {
+      themeMenu.anchorElement = themeBtn;       // robust anchoring
+      themeMenu.open = !themeMenu.open;
+      themeBtn.setAttribute('aria-expanded', String(themeMenu.open));
+    }
+  });
+  themeMenu?.addEventListener('closed', () =>
+    themeBtn?.setAttribute('aria-expanded', 'false'));
+
+  // Pick a mode from the menu items.
+  document.querySelectorAll('#theme-menu md-menu-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const mode = (item as HTMLElement).dataset.mode ?? 'auto';
       await storageSet({ themeMode: mode });
-      applyTheme(mode);
+      applyTheme(mode);                          // menu auto-closes on item click
     });
   });
 
@@ -144,10 +193,15 @@
     height: 100%;
   }
 
-  /* Compact the segmented set to fit the 56dp shelf */
-  #theme-set {
-    --md-outlined-segmented-button-container-height: 36px;
-  }
+  /* Borderless theme toggle (icon button) + anchored menu */
+  .theme-toggle { position: relative; display: flex; align-items: center; }
+  #theme-btn { color: var(--md-sys-color-on-surface-variant); }
+
+  /* Trailing check is only visible on the active mode */
+  #theme-menu .check { visibility: hidden; color: var(--md-sys-color-primary); }
+  #theme-menu md-menu-item.active .check { visibility: visible; }
+  #theme-menu md-menu-item.active { --md-menu-item-label-text-color: var(--md-sys-color-primary); }
+
   #auth-btn { --md-text-button-label-text-color: var(--md-sys-color-on-surface-variant); }
   #auth-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
