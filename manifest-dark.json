@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "YOUR_THEME_NAME — Dark",
+  "version": "1.0.0",
+  "description": "YOUR_THEME_DESCRIPTION — Dark mode variant",
+
+  "theme": {
+
+    "images": {
+      "theme_ntp_background": "images/naruto-swift.jpg"
+    },
+
+    "colors": {
+
+      "frame":               [  8,  22,  40 ],
+      "frame_inactive":      [ 12,  28,  48 ],
+      "frame_incognito":     [  5,  14,  28 ],
+
+      "toolbar":             [ 18,  44,  68 ],
+
+      "tab_text":            [241, 233, 218 ],
+      "tab_background_text": [120, 155, 185 ],
+
+      "bookmark_text":       [241, 233, 218 ],
+
+      "ntp_background":      [ 10,  26,  44 ],
+      "ntp_text":            [241, 233, 218 ],
+      "ntp_link":            [237, 103,  51 ],
+      "ntp_link_underline":  [237, 103,  51 ],
+      "ntp_header":          [241, 233, 218 ],
+
+      "omnibox_text":        [241, 233, 218 ],
+      "omnibox_background":  [ 24,  55,  84 ],
+
+      "button_background":   [ 18,  44,  68 ]
+
+    },
+
+    "tints": {
+      "buttons":        [ -1.0, -1.0,  0.85 ],
+      "frame":          [ -1.0, -1.0, -1.0  ],
+      "frame_inactive": [ -1.0, -1.0,  0.30 ]
+    },
+
+    "properties": {
+      "ntp_background_alignment": "center",
+      "ntp_background_repeat":    "no-repeat",
+      "ntp_logo_alternate":       1
+    }
+
+  }
+}
