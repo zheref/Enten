@@ -55,7 +55,7 @@
 </md-menu>
 
 <script>
-  import { storageGet } from '../lib/storage.js';
+  import { storageGet, storageSet } from '../lib/storage.js';
   import { showSnackbar } from '../lib/snackbar.js';
 
   // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
@@ -93,13 +93,15 @@
     const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
     const label = esc(item.label ?? item.url ?? '');
     const bgStyle = bg ? `background:${esc(bg)};` : '';
+    // Bookmarks are draggable to reorder; fixed shortcuts are not.
+    const draggable = kind === 'bookmark' ? 'true' : 'false';
     // No target=_blank: a normal click opens in THIS tab. New-tab / copy are
     // available from the right-click menu (and middle-click still opens a tab).
     return `
       <a class="shelf-icon" href="${esc(item.url)}" role="listitem" aria-label="${label}"
-         data-url="${esc(item.url)}" data-kind="${kind}">
+         data-url="${esc(item.url)}" data-kind="${kind}" draggable="${draggable}">
         <span class="shelf-icon__circle elev-${elev}" style="${bgStyle}" aria-hidden="true">
-          <img class="shelf-icon__favicon" style="width:${scale}%;height:${scale}%"
+          <img class="shelf-icon__favicon" draggable="false" style="width:${scale}%;height:${scale}%"
                src="${faviconFor(item.url)}" alt="" loading="lazy" />
         </span>
         <span class="shelf-icon__tip" role="tooltip">${label}</span>
@@ -128,10 +130,21 @@
     const items = shortcuts ?? DEFAULT_SHORTCUTS;
     let html = items.map((s: any) => iconHTML(s, 100, 1, 'shortcut')).join('');
 
-    // 2) Separator + Chrome Bookmarks Bar — overridable via Adjust Containment
+    // 2) Separator + Chrome Bookmarks Bar — reorderable + overridable
     const bookmarks = await getBookmarksBar();
     if (bookmarks.length) {
       const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
+      const { bookmarkOrder = [] } = await storageGet('bookmarkOrder') as any;
+      // Apply the user's saved order; bookmarks not in the list keep their
+      // natural order and go after the ordered ones.
+      bookmarks.sort((a, b) => {
+        const ia = bookmarkOrder.indexOf(a.url);
+        const ib = bookmarkOrder.indexOf(b.url);
+        if (ia === -1 && ib === -1) return 0;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
       html += '<span class="shelf-sep" aria-hidden="true"></span>';
       html += bookmarks.map(b => {
         const ov = bookmarkOverrides[b.url] || {};
@@ -199,8 +212,54 @@
     });
   }
 
+  // ── Drag to reorder bookmark icons (bookmarks only) ─────────────────────────
+  function setupReorder() {
+    const shelf = document.getElementById('shelf-apps');
+    if (!shelf) return;
+    let dragEl: HTMLElement | null = null;
+
+    const bookmarkIcons = () =>
+      Array.from(shelf.querySelectorAll('.shelf-icon[data-kind="bookmark"]')) as HTMLElement[];
+
+    shelf.addEventListener('dragstart', (e: DragEvent) => {
+      const icon = (e.target as HTMLElement).closest('.shelf-icon[data-kind="bookmark"]') as HTMLElement | null;
+      if (!icon) return;
+      dragEl = icon;
+      icon.classList.add('dragging');
+      try {
+        e.dataTransfer!.effectAllowed = 'move';
+        e.dataTransfer!.setData('text/plain', icon.dataset.url || '');
+      } catch { /* noop */ }
+    });
+
+    shelf.addEventListener('dragover', (e: DragEvent) => {
+      if (!dragEl) return;
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = 'move';
+      // Insert before the first bookmark whose horizontal midpoint is past the
+      // cursor; otherwise drop at the end of the bookmark run.
+      const after = bookmarkIcons().filter(el => el !== dragEl).find(el => {
+        const r = el.getBoundingClientRect();
+        return e.clientX < r.left + r.width / 2;
+      });
+      if (after) shelf.insertBefore(dragEl, after);
+      else shelf.appendChild(dragEl);
+    });
+
+    shelf.addEventListener('drop', (e: DragEvent) => { if (dragEl) e.preventDefault(); });
+
+    shelf.addEventListener('dragend', async () => {
+      if (!dragEl) return;
+      dragEl.classList.remove('dragging');
+      dragEl = null;
+      const order = bookmarkIcons().map(el => el.dataset.url).filter(Boolean);
+      await storageSet({ bookmarkOrder: order });
+    });
+  }
+
   render();
   setupContextMenu();
+  setupReorder();
 </script>
 
 <!-- is:global — shelf icons are injected at runtime via innerHTML, which never
@@ -232,6 +291,9 @@
     gap: 6px;
     height: 100%;
   }
+
+  /* Bookmark being dragged to reorder */
+  .shelf-icon.dragging { opacity: 0.4; cursor: grabbing; }
 
   /* Divider between the configured shortcuts and the Chrome bookmarks */
   .shelf-sep {
