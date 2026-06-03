@@ -80,6 +80,7 @@
 <script>
   import { storageGet, storageSet, storageRemove } from '../lib/storage.js';
   import { signOut } from '../lib/google.js';
+  import { openCenteredMenu } from '../lib/menu.js';
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   // SVG glyph (24×24 path) for each mode — shown on the toggle button.
@@ -120,16 +121,18 @@
     applyTheme(themeMode ?? 'auto');
   }
 
-  // Open the menu from the toggle button.
+  // Open the menu centred on the toggle button; keep the button's state ON.
   themeBtn?.addEventListener('click', () => {
-    if (themeMenu) {
-      themeMenu.anchorElement = themeBtn;       // robust anchoring
-      themeMenu.open = !themeMenu.open;
-      themeBtn.setAttribute('aria-expanded', String(themeMenu.open));
-    }
+    if (!themeMenu) return;
+    if (themeMenu.open) { themeMenu.open = false; return; }
+    openCenteredMenu(themeMenu, themeBtn);
+    themeBtn.classList.add('menu-active');
+    themeBtn.setAttribute('aria-expanded', 'true');
   });
-  themeMenu?.addEventListener('closed', () =>
-    themeBtn?.setAttribute('aria-expanded', 'false'));
+  themeMenu?.addEventListener('closed', () => {
+    themeBtn?.classList.remove('menu-active');
+    themeBtn?.setAttribute('aria-expanded', 'false');
+  });
 
   // Pick a mode from the menu items.
   document.querySelectorAll('#theme-menu md-menu-item').forEach(item => {
@@ -207,16 +210,18 @@
     } catch (e) { console.error('[SergioSwift] Auth error', e); }
   }
 
-  // Open the account menu from the person button.
+  // Open the account menu centred on the person button; keep its state ON.
   authBtn?.addEventListener('click', () => {
-    if (authMenu) {
-      authMenu.anchorElement = authBtn;
-      authMenu.open = !authMenu.open;
-      authBtn.setAttribute('aria-expanded', String(authMenu.open));
-    }
+    if (!authMenu) return;
+    if (authMenu.open) { authMenu.open = false; return; }
+    openCenteredMenu(authMenu, authBtn);
+    authBtn.classList.add('menu-active');
+    authBtn.setAttribute('aria-expanded', 'true');
   });
-  authMenu?.addEventListener('closed', () =>
-    authBtn?.setAttribute('aria-expanded', 'false'));
+  authMenu?.addEventListener('closed', () => {
+    authBtn?.classList.remove('menu-active');
+    authBtn?.setAttribute('aria-expanded', 'false');
+  });
 
   // Sign in / sign out from the menu item.
   authAction?.addEventListener('click', async () => {
@@ -245,6 +250,13 @@
      (secondary-container fill) — no custom check/colour needed. */
   .theme-toggle { position: relative; display: flex; align-items: center; }
   #theme-btn { --md-icon-button-icon-color: var(--shelf-glyph); }
+
+  /* While a status button's menu is open, keep a persistent round state layer
+     so it's clear which item the menu belongs to. */
+  #theme-btn.menu-active, #auth-btn.menu-active {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+    border-radius: var(--md-sys-shape-corner-full);
+  }
 
   /* Borderless account button + anchored account menu */
   .auth-control { position: relative; display: flex; align-items: center; }

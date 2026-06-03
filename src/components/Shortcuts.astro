@@ -57,6 +57,7 @@
 <script>
   import { storageGet, storageSet } from '../lib/storage.js';
   import { showSnackbar } from '../lib/snackbar.js';
+  import { openCenteredMenu } from '../lib/menu.js';
 
   // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
@@ -180,13 +181,18 @@
       ctxLabel = icon.getAttribute('aria-label') || '';
       // "Adjust Containment" applies to bookmark-fetched apps only.
       if (adjustItem) adjustItem.style.display = ctxKind === 'bookmark' ? '' : 'none';
-      menu.anchorElement = icon;
-      // Hide the tooltip first, then reveal the menu once it has faded out.
+      // Keep this icon's hover elevation on while its menu is open.
+      shelf.querySelectorAll('.shelf-icon.menu-active').forEach(el => el.classList.remove('menu-active'));
+      icon.classList.add('menu-active');
+      // Hide the tooltip first, then reveal the menu (centred) once it's faded.
       shelf.classList.add('menu-open');
-      setTimeout(() => { menu.open = true; }, 120);
+      setTimeout(() => openCenteredMenu(menu, icon), 120);
     });
-    // Let tooltips return once the menu is dismissed.
-    menu.addEventListener('closed', () => shelf.classList.remove('menu-open'));
+    // Let tooltips return + drop the elevation once the menu is dismissed.
+    menu.addEventListener('closed', () => {
+      shelf.classList.remove('menu-open');
+      shelf.querySelectorAll('.shelf-icon.menu-active').forEach(el => el.classList.remove('menu-active'));
+    });
 
     document.getElementById('ctx-newtab')?.addEventListener('click', () => {
       if (ctxUrl) window.open(ctxUrl, '_blank');
@@ -377,12 +383,12 @@
     flex-shrink: 0;
   }
 
-  /* ── Per-item elevation — revealed only on hover ─────────────────── */
-  /* At rest every circle is elevation-less; hovering one lifts just it.
-     Uses the same shadow colour as the tooltips (dark drop + light glow). */
-  .shelf-icon:hover .elev-1 { box-shadow: var(--shelf-pop-shadow-1); }
-  .shelf-icon:hover .elev-2 { box-shadow: var(--shelf-pop-shadow-2); }
-  .shelf-icon:hover .elev-3 { box-shadow: var(--shelf-pop-shadow-3); }
+  /* ── Per-item elevation — revealed on hover, and kept while its menu is open ─
+     At rest every circle is elevation-less; hovering (or having the right-click
+     menu open) lifts just it. Same shadow colour as the tooltips. */
+  .shelf-icon:hover .elev-1, .shelf-icon.menu-active .elev-1 { box-shadow: var(--shelf-pop-shadow-1); }
+  .shelf-icon:hover .elev-2, .shelf-icon.menu-active .elev-2 { box-shadow: var(--shelf-pop-shadow-2); }
+  .shelf-icon:hover .elev-3, .shelf-icon.menu-active .elev-3 { box-shadow: var(--shelf-pop-shadow-3); }
 
   /* ── Favicon ─────────────────────────────────────────────────────── */
   /* Size comes from an inline width/height percentage (the `scale` field).
