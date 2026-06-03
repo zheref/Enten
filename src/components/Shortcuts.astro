@@ -30,14 +30,14 @@
 
   // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',    url: 'https://mail.google.com',     scale: 100, elevation: 5 },
-    { label: 'Calendar', url: 'https://calendar.google.com', scale: 100, elevation: 5 },
-    { label: 'GitHub',   url: 'https://github.com',          scale: 73,  elevation: 5 },
-    { label: 'YouTube',  url: 'https://youtube.com',         scale: 67, elevation: 5 },
-    { label: 'Notion',   url: 'https://notion.so',           scale: 73,  elevation: 5 },
-    { label: 'Figma',    url: 'https://figma.com',           scale: 67,  elevation: 5 },
-    { label: 'Linear',   url: 'https://linear.app',          scale: 90, elevation: 5 },
-    { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 5 },
+    { label: 'Gmail',    url: 'https://mail.google.com',     scale: 80, elevation: 1 },
+    { label: 'Calendar', url: 'https://calendar.google.com', scale: 80, elevation: 1 },
+    { label: 'GitHub',   url: 'https://github.com',          scale: 73,  elevation: 1 },
+    { label: 'YouTube',  url: 'https://youtube.com',         scale: 67, elevation: 1 },
+    { label: 'Notion',   url: 'https://notion.so',           scale: 73,  elevation: 1 },
+    { label: 'Figma',    url: 'https://figma.com',           scale: 67,  elevation: 1 },
+    { label: 'Linear',   url: 'https://linear.app',          scale: 90, elevation: 1 },
+    { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 1 },
   ];
 
   /** Resolve a high-res favicon for a URL via Google's favicon service. */
@@ -93,6 +93,15 @@
      receives Astro's scoped [data-astro-cid-*] attribute. Scoped rules would
      not match those nodes, so these (shelf-unique) classes must be global. -->
 <style is:global>
+  :root {
+    /* Shared "pop" shadow — used by the shelf tooltips AND the hover-revealed
+       icon elevation. Soft dark drop (depth on light wallpapers) + light glow
+       (so it highlights on dark wallpapers too). Level 2 == the tooltip. */
+    --shelf-pop-shadow-1: 0 4px 14px rgba(0, 0, 0, 0.24), 0 0 12px rgba(255, 255, 255, 0.18);
+    --shelf-pop-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.28), 0 0 18px rgba(255, 255, 255, 0.22);
+    --shelf-pop-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.32), 0 0 26px rgba(255, 255, 255, 0.26);
+  }
+
   .shelf-apps {
     display: flex;
     align-items: center;
@@ -127,11 +136,12 @@
     flex-shrink: 0;
   }
 
-  /* ── Per-item MD3 elevation — revealed only on hover ─────────────── */
-  /* At rest every circle is elevation-less; hovering one lifts just it. */
-  .shelf-icon:hover .elev-1 { box-shadow: var(--md-sys-elevation-level1); }
-  .shelf-icon:hover .elev-2 { box-shadow: var(--md-sys-elevation-level2); }
-  .shelf-icon:hover .elev-3 { box-shadow: var(--md-sys-elevation-level3); }
+  /* ── Per-item elevation — revealed only on hover ─────────────────── */
+  /* At rest every circle is elevation-less; hovering one lifts just it.
+     Uses the same shadow colour as the tooltips (dark drop + light glow). */
+  .shelf-icon:hover .elev-1 { box-shadow: var(--shelf-pop-shadow-1); }
+  .shelf-icon:hover .elev-2 { box-shadow: var(--shelf-pop-shadow-2); }
+  .shelf-icon:hover .elev-3 { box-shadow: var(--shelf-pop-shadow-3); }
 
   /* ── Favicon ─────────────────────────────────────────────────────── */
   /* Size comes from an inline width/height percentage (the `scale` field).
@@ -157,11 +167,8 @@
     background: var(--md-sys-color-surface-container);
     color: var(--md-sys-color-on-surface);
     border-radius: var(--md-sys-shape-corner-extra-large); /* same as menus */
-    /* Soft dark drop (light backgrounds) + light glow (dark backgrounds) so the
-       tooltip stays legible on any wallpaper. */
-    box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.28),
-      0 0 18px rgba(255, 255, 255, 0.22);
+    /* Same "pop" shadow shared with the hover-revealed icon elevation. */
+    box-shadow: var(--shelf-pop-shadow-2);
     font: var(--md-sys-typescale-title-small);
     letter-spacing: var(--md-sys-typescale-title-small-tracking);
     white-space: nowrap;
