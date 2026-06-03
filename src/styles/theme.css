@@ -81,8 +81,9 @@
   /* Opaque widget-card surface (header when collapsed + body) */
   --card-surface: var(--md-sys-color-surface-container-low);
 
-  /* Wallpaper overlay (scrim strength over the image) */
-  --wallpaper-scrim: rgba(255, 248, 245, 0.08);
+  /* Wallpaper overlay (scrim strength over the image).
+     Light mode: no wash at all — the image shows untouched. */
+  --wallpaper-scrim: transparent;
 }
 
 /* ── Dark scheme ─────────────────────────────────────────────────────────── */
