@@ -78,10 +78,10 @@
   --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
-  /* Expanded widget-card header glass — ~33% of the shelf's opacity, per scheme.
-     calc() reads the cascaded --shelf-tint/--shelf-opacity, so it auto-adapts to
-     the colour scheme and any shelf-opacity tweak. Change 0.33 for the ratio. */
-  --card-glass-bg: rgba(var(--shelf-tint), calc(var(--shelf-opacity) * 0.33));
+  /* Expanded widget-card header glass — 33% MORE opaque than the shelf, per
+     scheme. calc() reads the cascaded --shelf-tint/--shelf-opacity, so it
+     auto-adapts to the colour scheme and any shelf-opacity tweak. Change 1.33. */
+  --card-glass-bg: rgba(var(--shelf-tint), calc(var(--shelf-opacity) * 1.33));
 
   /* Opaque widget-card surface (header when collapsed + body) */
   --card-surface: var(--md-sys-color-surface-container-low);
