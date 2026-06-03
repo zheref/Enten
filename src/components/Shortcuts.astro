@@ -71,9 +71,20 @@
     { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 1 },
   ];
 
-  /** Resolve a high-res favicon for a URL via Google's favicon service. */
+  /** Resolve a favicon for a URL.
+   *  In the extension we use Chrome's _favicon API (requires the "favicon"
+   *  permission): it serves the REAL favicon Chrome has for that exact page —
+   *  e.g. the actual Gmail / Calendar icons — keyed by the full page URL, so
+   *  subdomains aren't collapsed to a generic site icon like the s2 service.
+   *  Falls back to Google's favicon service outside the extension (npm run dev). */
   function faviconFor(url: string): string {
     try {
+      if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+        const u = new URL(chrome.runtime.getURL('/_favicon/'));
+        u.searchParams.set('pageUrl', url);
+        u.searchParams.set('size', '64');
+        return u.toString();
+      }
       const { hostname } = new URL(url);
       return `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
     } catch {
