@@ -403,7 +403,9 @@
      elevation (level 2) on a surface-container background. */
   .shelf-icon__tip {
     position: absolute;
-    bottom: calc(100% + 16px);         /* more gap between tooltip and the bar */
+    /* Gap to the shelf TOP edge = --shelf-gap (same as the shelf's float gap).
+       The icon is centred in the bar, so add its top margin (height−44)/2. */
+    bottom: calc(100% + var(--shelf-gap) + (var(--shelf-height) - 44px) / 2);
     left: 50%;
     /* Grows from the bar: starts small + lower, scaling from its bottom edge */
     transform-origin: bottom center;

@@ -129,7 +129,7 @@ import '../styles/theme.css';
   }
   applySavedTheme();
 
-  const SHELF_CLEARANCE = 56 + 16; // shelf height + safety gap
+  const SHELF_CLEARANCE = 56 + 16 + 16; // floating shelf: height + float gap + clearance gap
   const CARD_W = 380;
   const CARD_H = 480;
 
@@ -337,7 +337,7 @@ import '../styles/theme.css';
      re-packs/animates them as a card collapses (its height animates). */
   #anchor-zone {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 72px;   /* clear the shelf (56 + 16) */
+    top: 0; left: 0; right: 0; bottom: var(--shelf-clearance);   /* clear the floating shelf */
     display: none;
     pointer-events: none;                       /* empty areas pass clicks through */
     z-index: 10;
@@ -357,38 +357,33 @@ import '../styles/theme.css';
   #anchor-zone[data-side="left"]   { flex-flow: column; justify-content: flex-start; align-items: flex-start; gap: 16px; padding: 24px 56px; }
   #anchor-zone[data-side="right"]  { flex-flow: column; justify-content: flex-start; align-items: flex-end;   gap: 16px; padding: 24px 56px; }
 
-  /* ── Bottom shelf ───────────────────────────────────────────────── */
-  /*
-   * Anchored to the bottom edge, full width.
-   * Rounded only on the TOP corners (left + right); bottom corners square
-   * so it meets the window's bottom edge cleanly (Chrome OS shelf style).
-   * backdrop-filter for the glass look.
-   * Single elevation-level2 shadow.
+  /* ── Floating shelf ─────────────────────────────────────────────────
+   * A piece of floating glass: lifted off the bottom edge by --shelf-gap,
+   * inset by --shelf-margin horizontally, fully rounded on every corner,
+   * with a full outline + elevation shadow (both theme-agnostic).
    */
   .shelf {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: var(--shelf-gap);
+    left: var(--shelf-margin);
+    right: var(--shelf-margin);
     z-index: 20;
-    height: 56px;
+    height: var(--shelf-height);
     /* 3-column grid: equal 1fr sides keep the auto centre zone (the app
        shortcuts) horizontally centred in the bar regardless of side widths. */
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     padding: 0 12px;
-    border-radius: var(--md-sys-shape-corner-extra-large)
-                   var(--md-sys-shape-corner-extra-large) 0 0;
+    border-radius: var(--md-sys-shape-corner-extra-large);   /* all corners */
     background: var(--shelf-bg);
     /* Opacity + blur radius are tunable in src/styles/theme.css
        (--shelf-opacity / --shelf-blur), per light & dark scheme. */
     backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
-    /* Border only on the top edge to match the rounded top corners */
-    border-top: 1px solid var(--md-sys-color-outline-variant);
-    /* Subtle MD3 level-1 shadow; the top border is the primary separator.
-       (Level 2 read as too heavy under the translucent bar.) */
+    /* Full outline + level-1 shadow define the floating piece (both adapt to
+       the colour scheme / stay constant across themes). */
+    border: 1px solid var(--md-sys-color-outline-variant);
     box-shadow: var(--md-sys-elevation-level1);
   }
 
