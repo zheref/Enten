@@ -344,10 +344,10 @@ import '../styles/theme.css';
      Bottom aligns to flex-end so a collapsing card keeps its title bar down. */
   #anchor-zone[data-side="top"]    { flex-flow: row;    justify-content: center; align-items: flex-start; gap: 24px; padding: 16px 24px; }
   #anchor-zone[data-side="bottom"] { flex-flow: row;    justify-content: center; align-items: flex-end;   gap: 24px; padding: 16px 24px; }
-  /* Horizontal edges (left/right): stacked column, vertically centred, with a
-     greater horizontal gap from the edge; re-packs as cards collapse/expand. */
-  #anchor-zone[data-side="left"]   { flex-flow: column; justify-content: center; align-items: flex-start; gap: 16px; padding: 24px 56px; }
-  #anchor-zone[data-side="right"]  { flex-flow: column; justify-content: center; align-items: flex-end;   gap: 16px; padding: 24px 56px; }
+  /* Left/right edges: stacked column, top-aligned (NOT vertically centred),
+     with a greater horizontal gap from the edge; re-packs as cards collapse. */
+  #anchor-zone[data-side="left"]   { flex-flow: column; justify-content: flex-start; align-items: flex-start; gap: 16px; padding: 24px 56px; }
+  #anchor-zone[data-side="right"]  { flex-flow: column; justify-content: flex-start; align-items: flex-end;   gap: 16px; padding: 24px 56px; }
 
   /* ── Bottom shelf ───────────────────────────────────────────────── */
   /*
