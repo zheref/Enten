@@ -1,0 +1,82 @@
+---
+/**
+ * CustomizePanel — centred, closeable & collapsible card to customise the
+ * dashboard. Opened via the `open-customize` window event (from the desktop
+ * menu). Content is a placeholder for now. Reuses the .widget-card chrome.
+ */
+---
+
+<md-elevated-card class="widget-card expanded customize-card is-hidden" id="customize-card">
+  <div class="widget-card__clip">
+
+    <div class="widget-card__header">
+      <span class="widget-card__icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+        </svg>
+      </span>
+      <span class="widget-card__title">Customize</span>
+      <md-icon-button class="widget-toggle" id="cz-toggle" aria-label="Collapse">
+        <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/>
+        </svg>
+      </md-icon-button>
+      <md-icon-button id="cz-close" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </md-icon-button>
+    </div>
+
+    <div class="widget-card__body">
+      <div class="widget-card__body-inner">
+        <div class="cz-content">
+          <p class="cz-placeholder">Customization options coming soon.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</md-elevated-card>
+
+<script>
+  const card = document.getElementById('customize-card') as HTMLElement;
+
+  window.addEventListener('open-customize', () => {
+    card.classList.remove('is-hidden');
+    card.classList.add('expanded');
+  });
+
+  document.getElementById('cz-close')?.addEventListener('click', () => {
+    card.classList.add('is-hidden');
+  });
+
+  const toggle = document.getElementById('cz-toggle');
+  toggle?.addEventListener('click', () => {
+    const expanded = card.classList.toggle('expanded');
+    toggle.setAttribute('aria-label', expanded ? 'Collapse' : 'Expand');
+  });
+
+  requestAnimationFrame(() => card.classList.add('anim-ready'));
+</script>
+
+<style is:global>
+  .customize-card {
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);    /* centred on screen */
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    z-index: 45;                          /* above shelf + widgets */
+  }
+  .customize-card.is-hidden { display: none !important; }
+
+  .cz-content { padding: 28px 20px; }
+  .cz-placeholder {
+    margin: 0;
+    text-align: center;
+    font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+</style>

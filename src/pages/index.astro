@@ -4,6 +4,7 @@ import EmailWidget    from '../components/EmailWidget.astro';
 import Shortcuts      from '../components/Shortcuts.astro';
 import StatusArea     from '../components/StatusArea.astro';
 import ContainmentAdjuster from '../components/ContainmentAdjuster.astro';
+import CustomizePanel       from '../components/CustomizePanel.astro';
 import '../styles/theme.css';
 ---
 <!DOCTYPE html>
@@ -66,6 +67,45 @@ import '../styles/theme.css';
 
   <!-- Floating panel to tune a bookmark icon's containment (opened on demand) -->
   <ContainmentAdjuster />
+
+  <!-- Centred panel to customise the dashboard (opened on demand) -->
+  <CustomizePanel />
+
+  <!-- Desktop (wallpaper) menu — anchored at the cursor via a 0-size element -->
+  <div id="desktop-anchor" aria-hidden="true" style="position:fixed;width:0;height:0;"></div>
+  <md-menu id="desktop-menu" positioning="fixed" anchor-corner="start-start" menu-corner="start-start">
+    <md-sub-menu>
+      <md-menu-item slot="item">
+        <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17 15l1.55 1.55c-.96 1.69-3.33 3.04-5.55 3.37V11h3V9h-3V7.82C14.16 7.4 15 6.3 15 5c0-1.65-1.35-3-3-3S9 3.35 9 5c0 1.3.84 2.4 2 2.82V9H8v2h3v9.92c-2.22-.33-4.59-1.68-5.55-3.37L7 15l-4-3v3c0 3.88 4.92 7 9 7s9-3.12 9-7v-3l-4 3z"/>
+        </svg>
+        <div slot="headline">Anchor Widgets</div>
+        <svg slot="end" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 17l5-5-5-5v10z"/>
+        </svg>
+      </md-menu-item>
+      <md-menu slot="menu" anchor-corner="start-end" menu-corner="start-start">
+        <md-menu-item data-side="top"><div slot="headline">Top</div>
+          <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+        </md-menu-item>
+        <md-menu-item data-side="right"><div slot="headline">Right</div>
+          <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </md-menu-item>
+        <md-menu-item data-side="bottom"><div slot="headline">Bottom</div>
+          <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+        </md-menu-item>
+        <md-menu-item data-side="left"><div slot="headline">Left</div>
+          <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+        </md-menu-item>
+      </md-menu>
+    </md-sub-menu>
+    <md-menu-item id="desktop-customize">
+      <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+      </svg>
+      <div slot="headline">Customize</div>
+    </md-menu-item>
+  </md-menu>
 
 </body>
 </html>
@@ -156,7 +196,76 @@ import '../styles/theme.css';
     initDrag(emailEl, 'email');
   }
 
+  // ── Anchor the widget cards to an edge ──────────────────────────────────────
+  function setPos(el: HTMLElement, left: number, top: number) {
+    const desktop = document.getElementById('desktop')!;
+    el.style.left = clamp(left, 0, desktop.offsetWidth  - el.offsetWidth)  + 'px';
+    el.style.top  = clamp(top,  0, desktop.offsetHeight - el.offsetHeight) + 'px';
+  }
+
+  async function anchorWidgets(side: string) {
+    const desktop = document.getElementById('desktop')!;
+    const cal = document.getElementById('widget-calendar') as HTMLElement;
+    const eml = document.getElementById('widget-email')    as HTMLElement;
+    if (!cal || !eml) return;
+    const dw = desktop.offsetWidth, dh = desktop.offsetHeight;
+    const m = 16, gap = 16, shelf = SHELF_CLEARANCE;
+    const calW = cal.offsetWidth, emlW = eml.offsetWidth;
+    const calH = cal.offsetHeight, emlH = eml.offsetHeight;
+
+    let cp = { left: m, top: m }, ep = { left: dw - emlW - m, top: m };
+    if (side === 'top') {
+      cp = { left: m,            top: m };
+      ep = { left: dw - emlW - m, top: m };
+    } else if (side === 'bottom') {
+      cp = { left: m,            top: dh - calH - shelf };
+      ep = { left: dw - emlW - m, top: dh - emlH - shelf };
+    } else if (side === 'left') {
+      cp = { left: m, top: m };
+      ep = { left: m, top: m + calH + gap };
+    } else if (side === 'right') {
+      cp = { left: dw - calW - m, top: m };
+      ep = { left: dw - emlW - m, top: m + calH + gap };
+    }
+    setPos(cal, cp.left, cp.top);
+    setPos(eml, ep.left, ep.top);
+
+    const { widgetPositions = {} } = await storageGet('widgetPositions') as any;
+    widgetPositions.calendar = { left: cal.offsetLeft, top: cal.offsetTop };
+    widgetPositions.email    = { left: eml.offsetLeft, top: eml.offsetTop };
+    await storageSet({ widgetPositions });
+  }
+
+  // ── Desktop (wallpaper) menu ────────────────────────────────────────────────
+  function setupDesktopMenu() {
+    const wallpaper = document.querySelector('.wallpaper') as HTMLElement | null;
+    const anchor    = document.getElementById('desktop-anchor') as HTMLElement;
+    const menu      = document.getElementById('desktop-menu') as any;
+    if (!wallpaper || !anchor || !menu) return;
+
+    function openAt(x: number, y: number) {
+      anchor.style.left = x + 'px';
+      anchor.style.top  = y + 'px';
+      menu.anchorElement = anchor;
+      menu.open = true;
+    }
+    // Tap (and right-click) on blank wallpaper space reveals the menu.
+    wallpaper.addEventListener('click', (e: MouseEvent) => openAt(e.clientX, e.clientY));
+    wallpaper.addEventListener('contextmenu', (e: MouseEvent) => {
+      e.preventDefault();
+      openAt(e.clientX, e.clientY);
+    });
+
+    menu.querySelectorAll('md-menu-item[data-side]').forEach((item: HTMLElement) => {
+      item.addEventListener('click', () => anchorWidgets(item.dataset.side || 'top'));
+    });
+    document.getElementById('desktop-customize')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('open-customize'));
+    });
+  }
+
   init();
+  setupDesktopMenu();
 </script>
 
 <style>
