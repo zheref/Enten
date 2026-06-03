@@ -95,18 +95,21 @@
 <style is:global>
   :root {
     /* Shared "pop" shadow — used by the shelf tooltips AND the hover-revealed
-       icon elevation. Prominent (wide blur radius) dark drop + light glow
-       (so it highlights on dark wallpapers too). Level 2 == the tooltip.
-       LIGHT MODE: lighter / softer dark drop. */
-    --shelf-pop-shadow-1: 0 6px 22px rgba(0, 0, 0, 0.13), 0 0 16px rgba(255, 255, 255, 0.18);
-    --shelf-pop-shadow-2: 0 10px 36px rgba(0, 0, 0, 0.15), 0 0 24px rgba(255, 255, 255, 0.22);
-    --shelf-pop-shadow-3: 0 14px 48px rgba(0, 0, 0, 0.17), 0 0 32px rgba(255, 255, 255, 0.26);
+       icon elevation. Drop shadow + light glow (so it highlights on dark
+       wallpapers too). Level 2 == the tooltip. Original (narrow) blur radii.
+       LIGHT MODE: the drop is lightened via a lighter COLOUR (grey), not a thin
+       alpha — tweak --shelf-shadow-color to taste. */
+    --shelf-shadow-color: 150, 150, 150;
+    --shelf-pop-shadow-1: 0 4px 14px rgba(var(--shelf-shadow-color), 0.24), 0 0 12px rgba(255, 255, 255, 0.18);
+    --shelf-pop-shadow-2: 0 8px 24px rgba(var(--shelf-shadow-color), 0.28), 0 0 18px rgba(255, 255, 255, 0.22);
+    --shelf-pop-shadow-3: 0 12px 32px rgba(var(--shelf-shadow-color), 0.32), 0 0 26px rgba(255, 255, 255, 0.26);
   }
-  /* DARK MODE: keep a stronger dark drop (same wide radii). */
+  /* DARK MODE: black drop (original radii). */
   .dark-scheme {
-    --shelf-pop-shadow-1: 0 6px 22px rgba(0, 0, 0, 0.30), 0 0 16px rgba(255, 255, 255, 0.20);
-    --shelf-pop-shadow-2: 0 10px 36px rgba(0, 0, 0, 0.34), 0 0 24px rgba(255, 255, 255, 0.24);
-    --shelf-pop-shadow-3: 0 14px 48px rgba(0, 0, 0, 0.38), 0 0 32px rgba(255, 255, 255, 0.28);
+    --shelf-shadow-color: 0, 0, 0;
+    --shelf-pop-shadow-1: 0 4px 14px rgba(var(--shelf-shadow-color), 0.30), 0 0 12px rgba(255, 255, 255, 0.20);
+    --shelf-pop-shadow-2: 0 8px 24px rgba(var(--shelf-shadow-color), 0.34), 0 0 18px rgba(255, 255, 255, 0.24);
+    --shelf-pop-shadow-3: 0 12px 32px rgba(var(--shelf-shadow-color), 0.38), 0 0 26px rgba(255, 255, 255, 0.28);
   }
 
   .shelf-apps {
