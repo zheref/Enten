@@ -36,18 +36,37 @@
       <div class="widget-card__body-inner">
         <div class="ct-content">
 
-          <!-- Live preview -->
+          <!-- Live preview with nudge arrows to move the icon within the circle -->
           <div class="ct-preview">
-            <span class="shelf-icon__circle elev-1 ct-preview__circle" id="ct-circle" aria-hidden="true">
-              <img class="shelf-icon__favicon" id="ct-img" alt="" />
-            </span>
+            <div class="ct-nudge">
+              <md-icon-button class="ct-arrow ct-arrow--up" data-dx="0" data-dy="-1" aria-label="Move up">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+              </md-icon-button>
+              <md-icon-button class="ct-arrow ct-arrow--left" data-dx="-1" data-dy="0" aria-label="Move left">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+              </md-icon-button>
+              <span class="shelf-icon__circle elev-1 ct-preview__circle" id="ct-circle" aria-hidden="true">
+                <img class="shelf-icon__favicon" id="ct-img" alt="" />
+              </span>
+              <md-icon-button class="ct-arrow ct-arrow--right" data-dx="1" data-dy="0" aria-label="Move right">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+              </md-icon-button>
+              <md-icon-button class="ct-arrow ct-arrow--down" data-dx="0" data-dy="1" aria-label="Move down">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+              </md-icon-button>
+            </div>
             <span class="ct-preview__label" id="ct-label"></span>
           </div>
 
-          <!-- Icon source / resolution picker -->
+          <!-- Icon source / resolution picker (last tile is a + to add a custom URL) -->
           <div class="ct-field">
             <div class="ct-field__label"><span>Icon</span></div>
             <div class="ct-icons" id="ct-icons" role="list"><!-- populated by script --></div>
+            <div class="ct-custom is-hidden" id="ct-custom">
+              <input type="url" id="ct-custom-url" class="ct-custom__input" spellcheck="false"
+                     placeholder="Paste image URL (PNG, JPG, ICO)" />
+              <button type="button" id="ct-custom-use" class="ct-custom__use">Use</button>
+            </div>
           </div>
 
           <!-- Containment scale -->
@@ -102,17 +121,25 @@
   const colorIn = document.getElementById('ct-color') as HTMLInputElement;
   const swatch  = document.getElementById('ct-swatch') as HTMLElement;
   const iconsEl = document.getElementById('ct-icons') as HTMLElement;
+  const customRow = document.getElementById('ct-custom') as HTMLElement;
+  const customUrl = document.getElementById('ct-custom-url') as HTMLInputElement;
 
   const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
   const esc = (s: string) => String(s).replace(/[&<>"]/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
+  const NUDGE_STEP = 2;   // px per arrow tap
+  const NUDGE_MAX  = 20;  // px clamp (≈ half the shelf circle)
+
   let url = '';
   let scale = 85;
   let bg = '#ffffff';
-  let chosenIcon = '';   // explicit icon override ('' = use the default favicon)
-  let defaultIcon = '';  // the icon shown when no override
+  let chosenIcon = '';            // explicit icon override ('' = use the default favicon)
+  let defaultIcon = '';           // the icon shown when no override
+  let offset = { x: 0, y: 0 };    // manual position nudge within the circle (px)
   let saveTimer: number | undefined;
+
+  const offsetStyle = () => (offset.x || offset.y) ? `translate(${offset.x}px,${offset.y}px)` : '';
 
   const effectiveIcon = () => chosenIcon || defaultIcon;
 
@@ -124,6 +151,7 @@
   function applyPreview() {
     img.style.width = scale + '%';
     img.style.height = scale + '%';
+    img.style.transform = offsetStyle();
     img.src = effectiveIcon();
     circle.style.background = bg;
     swatch.style.background = bg;        // the swatch shows the chosen colour, full-bleed
@@ -134,6 +162,7 @@
     const c = icon.querySelector('.shelf-icon__circle') as HTMLElement | null;
     if (i) {
       i.style.width = scale + '%'; i.style.height = scale + '%';
+      i.style.transform = offsetStyle();
       if (chosenIcon) i.setAttribute('src', chosenIcon);
     }
     if (c) c.style.background = bg;
@@ -144,28 +173,79 @@
       const { appOverrides = {} } = await storageGet('appOverrides') as any;
       const entry: any = { scale, bg };
       if (chosenIcon) entry.icon = chosenIcon;
+      if (offset.x || offset.y) entry.offset = { x: offset.x, y: offset.y };
       appOverrides[url] = entry;
       await storageSet({ appOverrides });
     }, 200);
   }
   function update() { applyPreview(); applyToShelf(); persistDebounced(); }
 
-  // Render the candidate icon sources, highlighting the effective one.
+  // Render the candidate icon sources, highlighting the effective one. A custom
+  // URL (one not among the built-in sources) gets its own tile, and the trailing
+  // "+" tile reveals the custom-URL field.
   function renderIcons() {
     const selected = effectiveIcon();
-    iconsEl.innerHTML = iconSources(url).map(c => `
+    const sources = iconSources(url);
+    const isCustom = !!chosenIcon && !sources.some(c => c.src === chosenIcon);
+    let html = sources.map(c => `
       <button class="ct-icon ${c.src === selected ? 'is-selected' : ''}" data-src="${esc(c.src)}"
               role="listitem" title="${esc(c.label)}" aria-label="${esc(c.label)}">
         <img src="${esc(c.src)}" alt="" loading="lazy" />
       </button>`).join('');
+    if (isCustom) {
+      html += `
+        <button class="ct-icon is-selected" data-src="${esc(chosenIcon)}"
+                role="listitem" title="Custom URL" aria-label="Custom icon">
+          <img src="${esc(chosenIcon)}" alt="" loading="lazy" />
+        </button>`;
+    }
+    html += `
+      <button class="ct-icon ct-icon--add" data-add="1" title="Custom URL…" aria-label="Add a custom icon URL">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      </button>`;
+    iconsEl.innerHTML = html;
   }
 
   iconsEl?.addEventListener('click', (e: MouseEvent) => {
-    const btn = (e.target as HTMLElement).closest('.ct-icon') as HTMLElement | null;
+    const target = e.target as HTMLElement;
+    const add = target.closest('.ct-icon--add') as HTMLElement | null;
+    if (add) {
+      const hidden = customRow.classList.toggle('is-hidden');
+      if (!hidden) { customUrl.value = ''; customUrl.focus(); }
+      return;
+    }
+    const btn = target.closest('.ct-icon') as HTMLElement | null;
     if (!btn) return;
     chosenIcon = btn.dataset.src || '';
     iconsEl.querySelectorAll('.ct-icon').forEach(b => b.classList.toggle('is-selected', b === btn));
     update();
+  });
+
+  // Apply a typed/pasted custom image URL as the icon.
+  function applyCustomUrl() {
+    const v = customUrl.value.trim();
+    if (!v) return;
+    try { new URL(v); } catch { showSnackbar('Enter a valid image URL'); return; }
+    chosenIcon = v;
+    customRow.classList.add('is-hidden');
+    renderIcons();
+    update();
+  }
+  document.getElementById('ct-custom-use')?.addEventListener('click', applyCustomUrl);
+  customUrl?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); applyCustomUrl(); }
+  });
+
+  // Nudge arrows — move the icon within the circle (works for any source).
+  card.querySelectorAll('.ct-arrow').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = btn as HTMLElement;
+      const dx = Number(el.dataset.dx) || 0;
+      const dy = Number(el.dataset.dy) || 0;
+      offset.x = clamp(offset.x + dx * NUDGE_STEP, -NUDGE_MAX, NUDGE_MAX);
+      offset.y = clamp(offset.y + dy * NUDGE_STEP, -NUDGE_MAX, NUDGE_MAX);
+      update();
+    });
   });
 
   // ── Open from the shelf right-click menu ────────────────────────────────────
@@ -179,6 +259,9 @@
     bg = ov.bg || '#ffffff';
     chosenIcon = ov.icon || '';
     defaultIcon = detail.icon || faviconFor(url);
+    offset = (ov.offset && typeof ov.offset.x === 'number')
+      ? { x: ov.offset.x, y: ov.offset.y } : { x: 0, y: 0 };
+    customRow.classList.add('is-hidden');
 
     labelEl.textContent = detail.label || url;
     slider.value = scale;
@@ -214,8 +297,9 @@
     const { appOverrides = {} } = await storageGet('appOverrides') as any;
     delete appOverrides[url];
     await storageSet({ appOverrides });
-    bg = '#ffffff'; chosenIcon = '';
+    bg = '#ffffff'; chosenIcon = ''; offset = { x: 0, y: 0 };
     colorIn.value = '#ffffff';
+    customRow.classList.add('is-hidden');
     applyPreview();
     renderIcons();
     window.dispatchEvent(new CustomEvent('shelf-icons-refresh')); // restore defaults on the shelf
@@ -253,6 +337,24 @@
 
   /* Preview */
   .ct-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  /* Circle centred, with nudge arrows around it (cross layout). */
+  .ct-nudge {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto auto;
+    align-items: center; justify-items: center;
+    gap: 2px;
+  }
+  .ct-arrow--up    { grid-area: 1 / 2 / 2 / 3; }
+  .ct-arrow--left  { grid-area: 2 / 1 / 3 / 2; }
+  .ct-nudge .ct-preview__circle { grid-area: 2 / 2 / 3 / 3; }
+  .ct-arrow--right { grid-area: 2 / 3 / 3 / 4; }
+  .ct-arrow--down  { grid-area: 3 / 2 / 4 / 3; }
+  .ct-arrow {
+    width: 32px; height: 32px;
+    --md-icon-button-icon-size: 20px;
+    --md-icon-button-icon-color: var(--md-sys-color-on-surface-variant);
+  }
   /* Higher specificity so it wins over the single-class .shelf-icon__circle */
   .containment-card .ct-preview__circle {
     width: 64px; height: 64px;
@@ -295,6 +397,46 @@
   .ct-icon:hover { box-shadow: var(--md-sys-elevation-level1); }
   .ct-icon.is-selected { border-color: var(--md-sys-color-primary); }
   .ct-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+  /* "+" tile to add a custom URL */
+  .ct-icon--add {
+    background: transparent;
+    border: 2px dashed var(--md-sys-color-outline-variant);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .ct-icon--add:hover {
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-primary);
+    box-shadow: none;
+  }
+
+  /* Custom-URL field, revealed by the "+" tile */
+  .ct-custom { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .ct-custom.is-hidden { display: none; }
+  .ct-custom__input {
+    flex: 1; min-width: 0; height: 40px; padding: 0 12px;
+    font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container-highest);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-corner-small);
+    outline: none;
+    transition: border-color 150ms ease;
+  }
+  .ct-custom__input::placeholder { color: var(--md-sys-color-on-surface-variant); }
+  .ct-custom__input:focus { border-color: var(--md-sys-color-primary); border-width: 2px; padding: 0 11px; }
+  .ct-custom__use {
+    flex-shrink: 0; height: 40px; padding: 0 18px;
+    border: none; border-radius: var(--md-sys-shape-corner-full);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font: var(--md-sys-typescale-label-large);
+    letter-spacing: var(--md-sys-typescale-label-large-tracking);
+    cursor: pointer;
+    transition: box-shadow 150ms ease;
+  }
+  .ct-custom__use:hover { box-shadow: var(--md-sys-elevation-level1); }
 
   /* Background controls: swatch + a vertical stack of icon buttons on its right */
   .ct-bg-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }

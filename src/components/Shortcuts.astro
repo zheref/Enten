@@ -80,11 +80,12 @@
    *  bg:   optional circle background override (hex).
    *  iconSrc: optional favicon override (else the default faviconFor). */
   function iconHTML(item: any, scaleDefault = 100, elevDefault = 1,
-                    kind = 'shortcut', bg = '', iconSrc = ''): string {
+                    kind = 'shortcut', bg = '', iconSrc = '', offset?: {x:number;y:number}): string {
     const scale = clamp(typeof item.scale === 'number' ? item.scale : scaleDefault, 0, 100);
     const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
     const label = esc(item.label ?? item.url ?? '');
     const bgStyle = bg ? `background:${esc(bg)};` : '';
+    const off = offset && (offset.x || offset.y) ? `transform:translate(${offset.x}px,${offset.y}px);` : '';
     const src = iconSrc || faviconFor(item.url);
     // Bookmarks are draggable to reorder; fixed shortcuts are not.
     const draggable = kind === 'bookmark' ? 'true' : 'false';
@@ -94,7 +95,8 @@
       <a class="shelf-icon" href="${esc(item.url)}" role="listitem" aria-label="${label}"
          data-url="${esc(item.url)}" data-kind="${kind}" draggable="${draggable}">
         <span class="shelf-icon__circle elev-${elev}" style="${bgStyle}" aria-hidden="true">
-          <img class="shelf-icon__favicon" draggable="false" style="width:${scale}%;height:${scale}%"
+          <img class="shelf-icon__favicon" draggable="false"
+               style="width:${scale}%;height:${scale}%;${off}"
                src="${esc(src)}" alt="" loading="lazy" />
         </span>
         <span class="shelf-icon__tip" role="tooltip">${label}</span>
@@ -124,7 +126,7 @@
       const ov = appOverrides[item.url] || {};
       const scale = typeof ov.scale === 'number' ? ov.scale
         : (typeof item.scale === 'number' ? item.scale : scaleDefault);
-      return iconHTML({ ...item, scale }, scaleDefault, 1, kind, ov.bg || '', ov.icon || '');
+      return iconHTML({ ...item, scale }, scaleDefault, 1, kind, ov.bg || '', ov.icon || '', ov.offset);
     };
 
     // 1) Configured shortcuts (storage override → defaults)
