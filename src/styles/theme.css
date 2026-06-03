@@ -74,7 +74,7 @@
      Lower --shelf-opacity  → more of the wallpaper shows through (less dense).
      Higher --shelf-blur    → frostier / softer blur.                          */
   --shelf-tint:    251, 235, 227;   /* RGB of the bar tint */
-  --shelf-opacity: 0.55;            /* ITERATE: 0 = clear · 1 = solid */
+  --shelf-opacity: 0.37;            /* ITERATE: 0 = clear · 1 = solid */
   --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
@@ -137,7 +137,7 @@
 
   /* ── Shelf glass — DARK MODE — tweak these (see light-mode notes above) ──── */
   --shelf-tint:    26, 28, 30;
-  --shelf-opacity: 0.78;            /* ITERATE */
+  --shelf-opacity: 0.55;            /* ITERATE */
   --shelf-blur:    24px;            /* ITERATE */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
   --wallpaper-scrim: rgba(0, 0, 0, 0.22);
