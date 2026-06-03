@@ -45,9 +45,8 @@
       <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11z"/>
     </svg>
   </md-menu-item>
-  <!-- Bookmarks only — toggled in JS -->
   <md-menu-item id="ctx-adjust">
-    <div slot="headline">Adjust Containment</div>
+    <div slot="headline">Customize Icon</div>
     <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
     </svg>
@@ -58,6 +57,7 @@
   import { storageGet, storageSet } from '../lib/storage.js';
   import { showSnackbar } from '../lib/snackbar.js';
   import { openCenteredMenu } from '../lib/menu.js';
+  import { faviconFor } from '../lib/favicons.js';
 
   // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
@@ -71,40 +71,21 @@
     { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 1 },
   ];
 
-  /** Resolve a favicon for a URL.
-   *  In the extension we use Chrome's _favicon API (requires the "favicon"
-   *  permission): it serves the REAL favicon Chrome has for that exact page —
-   *  e.g. the actual Gmail / Calendar icons — keyed by the full page URL, so
-   *  subdomains aren't collapsed to a generic site icon like the s2 service.
-   *  Falls back to Google's favicon service outside the extension (npm run dev). */
-  function faviconFor(url: string): string {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
-        const u = new URL(chrome.runtime.getURL('/_favicon/'));
-        u.searchParams.set('pageUrl', url);
-        u.searchParams.set('size', '64');
-        return u.toString();
-      }
-      const { hostname } = new URL(url);
-      return `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
-    } catch {
-      return '';
-    }
-  }
-
   const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
   const esc = (s: string) => String(s).replace(/[&<>"]/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
   /** Build one shelf icon.
-   *  kind: 'shortcut' (fixed) | 'bookmark' (overridable via Adjust Containment).
-   *  bg:   optional circle background override (hex). */
+   *  kind: 'shortcut' (fixed) | 'bookmark' (draggable).
+   *  bg:   optional circle background override (hex).
+   *  iconSrc: optional favicon override (else the default faviconFor). */
   function iconHTML(item: any, scaleDefault = 100, elevDefault = 1,
-                    kind = 'shortcut', bg = ''): string {
+                    kind = 'shortcut', bg = '', iconSrc = ''): string {
     const scale = clamp(typeof item.scale === 'number' ? item.scale : scaleDefault, 0, 100);
     const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
     const label = esc(item.label ?? item.url ?? '');
     const bgStyle = bg ? `background:${esc(bg)};` : '';
+    const src = iconSrc || faviconFor(item.url);
     // Bookmarks are draggable to reorder; fixed shortcuts are not.
     const draggable = kind === 'bookmark' ? 'true' : 'false';
     // No target=_blank: a normal click opens in THIS tab. New-tab / copy are
@@ -114,7 +95,7 @@
          data-url="${esc(item.url)}" data-kind="${kind}" draggable="${draggable}">
         <span class="shelf-icon__circle elev-${elev}" style="${bgStyle}" aria-hidden="true">
           <img class="shelf-icon__favicon" draggable="false" style="width:${scale}%;height:${scale}%"
-               src="${faviconFor(item.url)}" alt="" loading="lazy" />
+               src="${esc(src)}" alt="" loading="lazy" />
         </span>
         <span class="shelf-icon__tip" role="tooltip">${label}</span>
       </a>`;
@@ -137,15 +118,23 @@
     const shelf = document.getElementById('shelf-apps');
     if (!shelf) return;
 
-    // 1) Configured shortcuts (storage override → defaults) — fixed, not adjustable
+    // Per-app overrides (scale / bg / icon), keyed by URL — apply to every item.
+    const { appOverrides = {} } = await storageGet('appOverrides') as any;
+    const make = (item: any, scaleDefault: number, kind: string) => {
+      const ov = appOverrides[item.url] || {};
+      const scale = typeof ov.scale === 'number' ? ov.scale
+        : (typeof item.scale === 'number' ? item.scale : scaleDefault);
+      return iconHTML({ ...item, scale }, scaleDefault, 1, kind, ov.bg || '', ov.icon || '');
+    };
+
+    // 1) Configured shortcuts (storage override → defaults)
     const { shortcuts } = await storageGet('shortcuts') as any;
     const items = shortcuts ?? DEFAULT_SHORTCUTS;
-    let html = items.map((s: any) => iconHTML(s, 100, 1, 'shortcut')).join('');
+    let html = items.map((s: any) => make(s, 100, 'shortcut')).join('');
 
-    // 2) Separator + Chrome Bookmarks Bar — reorderable + overridable
+    // 2) Separator + Chrome Bookmarks Bar — reorderable
     const bookmarks = await getBookmarksBar();
     if (bookmarks.length) {
-      const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
       const { bookmarkOrder = [] } = await storageGet('bookmarkOrder') as any;
       // Apply the user's saved order; bookmarks not in the list keep their
       // natural order and go after the ordered ones.
@@ -158,11 +147,7 @@
         return ia - ib;
       });
       html += '<span class="shelf-sep" aria-hidden="true"></span>';
-      html += bookmarks.map(b => {
-        const ov = bookmarkOverrides[b.url] || {};
-        const scale = typeof ov.scale === 'number' ? ov.scale : 85;
-        return iconHTML({ ...b, scale }, 85, 1, 'bookmark', ov.bg || '');
-      }).join('');
+      html += bookmarks.map(b => make(b, 85, 'bookmark')).join('');
     }
 
     shelf.innerHTML = html;
@@ -175,11 +160,12 @@
   let ctxUrl = '';
   let ctxKind = 'shortcut';
   let ctxLabel = '';
+  let ctxScale = 85;
+  let ctxIcon = '';
 
   function setupContextMenu() {
     const shelf = document.getElementById('shelf-apps');
     const menu  = document.getElementById('app-context-menu') as any;
-    const adjustItem = document.getElementById('ctx-adjust') as HTMLElement;
     if (!shelf || !menu) return;
 
     // Open our menu instead of the browser's on right-click of an icon.
@@ -190,8 +176,9 @@
       ctxUrl   = icon.getAttribute('href') || '';
       ctxKind  = icon.dataset.kind || 'shortcut';
       ctxLabel = icon.getAttribute('aria-label') || '';
-      // "Adjust Containment" applies to bookmark-fetched apps only.
-      if (adjustItem) adjustItem.style.display = ctxKind === 'bookmark' ? '' : 'none';
+      const fav = icon.querySelector('.shelf-icon__favicon') as HTMLElement | null;
+      ctxScale = parseInt(fav?.style.width || '') || (ctxKind === 'bookmark' ? 85 : 100);
+      ctxIcon  = fav?.getAttribute('src') || '';
       // Keep this icon's hover elevation on while its menu is open.
       shelf.querySelectorAll('.shelf-icon.menu-active').forEach(el => el.classList.remove('menu-active'));
       icon.classList.add('menu-active');
@@ -222,9 +209,9 @@
       }
     });
     document.getElementById('ctx-adjust')?.addEventListener('click', () => {
-      if (ctxKind !== 'bookmark' || !ctxUrl) return;
+      if (!ctxUrl) return;
       window.dispatchEvent(new CustomEvent('open-containment', {
-        detail: { url: ctxUrl, label: ctxLabel, favicon: faviconFor(ctxUrl) },
+        detail: { url: ctxUrl, label: ctxLabel, scale: ctxScale, icon: ctxIcon },
       }));
     });
   }

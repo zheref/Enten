@@ -1,12 +1,12 @@
 ---
 /**
- * ContainmentAdjuster — floating, closeable & collapsible card to tune a
- * BOOKMARK icon's containment (scale) and circle background colour.
+ * ContainmentAdjuster — "Customize Icon": floating, closeable & collapsible
+ * card to tune any shelf app's icon source/resolution, containment scale, and
+ * circle background colour.
  *
- * Opened via the `open-containment` window event (dispatched from the shelf
- * right-click menu). Edits persist to chrome.storage.local under
- * `bookmarkOverrides` keyed by URL, and are applied live to the shelf icon.
- * Reuses the global .widget-card chrome (glass header, roll-down body).
+ * Opened via the `open-containment` window event (from the shelf right-click
+ * menu). Edits persist to chrome.storage.local under `appOverrides` keyed by
+ * URL, applied live to the shelf icon. Reuses the global .widget-card chrome.
  */
 ---
 
@@ -19,7 +19,7 @@
           <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
         </svg>
       </span>
-      <span class="widget-card__title">Adjust Containment</span>
+      <span class="widget-card__title">Customize Icon</span>
       <md-icon-button class="widget-toggle" id="ct-toggle" aria-label="Collapse">
         <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/>
@@ -42,6 +42,12 @@
               <img class="shelf-icon__favicon" id="ct-img" alt="" />
             </span>
             <span class="ct-preview__label" id="ct-label"></span>
+          </div>
+
+          <!-- Icon source / resolution picker -->
+          <div class="ct-field">
+            <div class="ct-field__label"><span>Icon</span></div>
+            <div class="ct-icons" id="ct-icons" role="list"><!-- populated by script --></div>
           </div>
 
           <!-- Containment scale -->
@@ -85,6 +91,7 @@
 <script>
   import { storageGet, storageSet } from '../lib/storage.js';
   import { showSnackbar } from '../lib/snackbar.js';
+  import { faviconFor, iconSources } from '../lib/favicons.js';
 
   const card    = document.getElementById('containment-card') as HTMLElement;
   const img     = document.getElementById('ct-img') as HTMLImageElement;
@@ -94,13 +101,20 @@
   const scaleVal= document.getElementById('ct-scale-val') as HTMLElement;
   const colorIn = document.getElementById('ct-color') as HTMLInputElement;
   const swatch  = document.getElementById('ct-swatch') as HTMLElement;
+  const iconsEl = document.getElementById('ct-icons') as HTMLElement;
 
   const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+  const esc = (s: string) => String(s).replace(/[&<>"]/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
   let url = '';
   let scale = 85;
   let bg = '#ffffff';
+  let chosenIcon = '';   // explicit icon override ('' = use the default favicon)
+  let defaultIcon = '';  // the icon shown when no override
   let saveTimer: number | undefined;
+
+  const effectiveIcon = () => chosenIcon || defaultIcon;
 
   function findShelfIcon(): HTMLElement | null {
     return Array.from(document.querySelectorAll('.shelf-icon'))
@@ -110,6 +124,7 @@
   function applyPreview() {
     img.style.width = scale + '%';
     img.style.height = scale + '%';
+    img.src = effectiveIcon();
     circle.style.background = bg;
     swatch.style.background = bg;        // the swatch shows the chosen colour, full-bleed
   }
@@ -117,35 +132,60 @@
     const icon = findShelfIcon(); if (!icon) return;
     const i = icon.querySelector('.shelf-icon__favicon') as HTMLElement | null;
     const c = icon.querySelector('.shelf-icon__circle') as HTMLElement | null;
-    if (i) { i.style.width = scale + '%'; i.style.height = scale + '%'; }
+    if (i) {
+      i.style.width = scale + '%'; i.style.height = scale + '%';
+      if (chosenIcon) i.setAttribute('src', chosenIcon);
+    }
     if (c) c.style.background = bg;
   }
   function persistDebounced() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = window.setTimeout(async () => {
-      const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
-      bookmarkOverrides[url] = { scale, bg };
-      await storageSet({ bookmarkOverrides });
+      const { appOverrides = {} } = await storageGet('appOverrides') as any;
+      const entry: any = { scale, bg };
+      if (chosenIcon) entry.icon = chosenIcon;
+      appOverrides[url] = entry;
+      await storageSet({ appOverrides });
     }, 200);
   }
   function update() { applyPreview(); applyToShelf(); persistDebounced(); }
+
+  // Render the candidate icon sources, highlighting the effective one.
+  function renderIcons() {
+    const selected = effectiveIcon();
+    iconsEl.innerHTML = iconSources(url).map(c => `
+      <button class="ct-icon ${c.src === selected ? 'is-selected' : ''}" data-src="${esc(c.src)}"
+              role="listitem" title="${esc(c.label)}" aria-label="${esc(c.label)}">
+        <img src="${esc(c.src)}" alt="" loading="lazy" />
+      </button>`).join('');
+  }
+
+  iconsEl?.addEventListener('click', (e: MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest('.ct-icon') as HTMLElement | null;
+    if (!btn) return;
+    chosenIcon = btn.dataset.src || '';
+    iconsEl.querySelectorAll('.ct-icon').forEach(b => b.classList.toggle('is-selected', b === btn));
+    update();
+  });
 
   // ── Open from the shelf right-click menu ────────────────────────────────────
   window.addEventListener('open-containment', async (e: any) => {
     const detail = e.detail || {};
     url = detail.url || '';
     if (!url) return;
-    const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
-    const ov = bookmarkOverrides[url] || {};
-    scale = typeof ov.scale === 'number' ? ov.scale : 85;
+    const { appOverrides = {} } = await storageGet('appOverrides') as any;
+    const ov = appOverrides[url] || {};
+    scale = typeof ov.scale === 'number' ? ov.scale : (typeof detail.scale === 'number' ? detail.scale : 85);
     bg = ov.bg || '#ffffff';
+    chosenIcon = ov.icon || '';
+    defaultIcon = detail.icon || faviconFor(url);
 
-    img.src = detail.favicon || '';
     labelEl.textContent = detail.label || url;
     slider.value = scale;
     scaleVal.textContent = scale + '%';
     colorIn.value = /^#[0-9a-f]{6}$/i.test(bg) ? bg : '#ffffff';
     applyPreview();
+    renderIcons();
 
     card.classList.remove('is-hidden');
     card.classList.add('expanded');
@@ -171,14 +211,15 @@
   });
 
   document.getElementById('ct-reset')?.addEventListener('click', async () => {
-    const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
-    delete bookmarkOverrides[url];
-    await storageSet({ bookmarkOverrides });
-    scale = 85; bg = '#ffffff';
-    slider.value = 85; scaleVal.textContent = '85%'; colorIn.value = '#ffffff';
+    const { appOverrides = {} } = await storageGet('appOverrides') as any;
+    delete appOverrides[url];
+    await storageSet({ appOverrides });
+    bg = '#ffffff'; chosenIcon = '';
+    colorIn.value = '#ffffff';
     applyPreview();
+    renderIcons();
     window.dispatchEvent(new CustomEvent('shelf-icons-refresh')); // restore defaults on the shelf
-    showSnackbar('Containment reset');
+    showSnackbar('Icon reset');
   });
 
   document.getElementById('ct-close')?.addEventListener('click', () => {
@@ -238,6 +279,22 @@
   }
   .ct-field__value { color: var(--md-sys-color-primary); font-weight: 500; }
   .containment-card md-slider { width: 100%; }
+
+  /* Icon source / resolution picker */
+  .ct-icons { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ct-icon {
+    width: 44px; height: 44px; padding: 7px;
+    flex-shrink: 0;
+    border: 2px solid transparent;
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: #ffffff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .ct-icon:hover { box-shadow: var(--md-sys-elevation-level1); }
+  .ct-icon.is-selected { border-color: var(--md-sys-color-primary); }
+  .ct-icon img { width: 100%; height: 100%; object-fit: contain; }
 
   /* Background controls: swatch + a vertical stack of icon buttons on its right */
   .ct-bg-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
