@@ -120,6 +120,15 @@ import '../styles/theme.css';
   import '../lib/md-components.ts';
   import { storageGet, storageSet } from '../lib/storage.js';
   import { installCursorFix } from '../lib/cursor-fix.js';
+  import { wallpaperSrc, DEFAULT_WALLPAPER } from '../lib/wallpapers.js';
+
+  // Apply the saved wallpaper choice as early as possible.
+  async function applyWallpaper() {
+    const { wallpaper = DEFAULT_WALLPAPER } = await storageGet('wallpaper') as any;
+    const img = document.querySelector('.wallpaper img') as HTMLImageElement | null;
+    if (img) img.src = wallpaperSrc(wallpaper);
+  }
+  applyWallpaper();
 
   const SHELF_CLEARANCE = 56 + 16; // shelf height + safety gap
   const CARD_W = 380;
