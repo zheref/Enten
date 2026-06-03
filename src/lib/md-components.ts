@@ -24,6 +24,5 @@ import '@material/web/slider/slider.js';
 import '@material/web/menu/menu.js';
 import '@material/web/menu/menu-item.js';
 import '@material/web/menu/sub-menu.js';
-import '@material/web/divider/divider.js';
 import '@material/web/button/filled-button.js';
 import '@material/web/labs/card/elevated-card.js';

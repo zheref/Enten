@@ -34,7 +34,6 @@
           <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
         </svg>
       </md-menu-item>
-      <md-divider role="separator"></md-divider>
       <md-menu-item id="data-clear" class="data-clear" keep-open>
         <div slot="headline">Clear Custom Data</div>
         <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -392,8 +391,6 @@
   #data-menu .data-clear[data-armed="1"] {
     background: color-mix(in srgb, var(--md-sys-color-error) 14%, transparent);
   }
-  /* Inset the separator to line up with the Expressive (inset) menu items. */
-  #data-menu md-divider { margin: 4px 12px; }
 
   /* Identity row is a disabled md-menu-item; keep its text legible (the
      default disabled 38% opacity is too faint to read an email address). */
@@ -422,19 +419,42 @@
     --md-menu-bottom-space: 8px;
   }
   #theme-menu md-menu-item,
-  #auth-menu  md-menu-item,
-  #data-menu  md-menu-item {
+  #auth-menu  md-menu-item {
     border-radius: var(--md-sys-shape-corner-large); /* 16dp — Expressive item shape */
     margin: 2px 8px;                                  /* inset from container edges */
   }
   /* Slightly more breathing room at the very top/bottom so pills clear the
      container's large rounded corners. */
   #theme-menu md-menu-item:first-of-type,
-  #auth-menu  md-menu-item:first-of-type,
-  #data-menu  md-menu-item:first-of-type { margin-top: 4px; }
+  #auth-menu  md-menu-item:first-of-type { margin-top: 4px; }
   #theme-menu md-menu-item:last-of-type,
-  #auth-menu  md-menu-item:last-of-type,
-  #data-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
+  #auth-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
+
+  /* ── M3 Expressive "grouped" menu ──────────────────────────────────────────
+     Instead of a divider, related items form a shape-joined cluster (large
+     outer corners, small inner corners, hairline gap) and separate groups are
+     set apart by extra space. Here: Export + Import = group A; Clear = group B. */
+  #data-menu md-menu-item {
+    margin: 0 8px;
+    border-radius: var(--md-sys-shape-corner-extra-small); /* 4dp — inner/joined edge */
+  }
+  /* Group A — Export (top of group) → Import (bottom of group) */
+  #data-menu #data-export {
+    margin-top: 4px;
+    border-top-left-radius: var(--md-sys-shape-corner-large);
+    border-top-right-radius: var(--md-sys-shape-corner-large);
+  }
+  #data-menu #data-import {
+    margin-top: 2px;                                       /* hairline gap within group */
+    border-bottom-left-radius: var(--md-sys-shape-corner-large);
+    border-bottom-right-radius: var(--md-sys-shape-corner-large);
+  }
+  /* Group B — Clear, set apart by a larger gap and fully rounded on its own */
+  #data-menu #data-clear {
+    margin-top: 10px;
+    margin-bottom: 4px;
+    border-radius: var(--md-sys-shape-corner-large);
+  }
 
   /* ── Clock (interactive button with MD3 hover state layer) ───────── */
   .clock {
