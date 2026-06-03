@@ -28,6 +28,10 @@ import '../styles/theme.css';
   <!-- ── Desktop (full viewport — shelf floats on top) ─────────────── -->
   <main class="desktop" id="desktop">
 
+    <!-- Flex container used when widgets are anchored to an edge. Widgets are
+         moved in/out of here; flex handles alignment + re-packing on collapse. -->
+    <div id="anchor-zone"></div>
+
     <div class="widget-wrapper" id="widget-calendar" data-widget="calendar">
       <CalendarWidget />
     </div>
@@ -135,6 +139,8 @@ import '../styles/theme.css';
       // Don't start a drag when pressing an interactive control in the header
       // (toggle / refresh buttons) — let their click through.
       if ((e.target as HTMLElement).closest('md-icon-button, button, a')) return;
+      // Dragging an anchored card releases it back to free positioning.
+      clearAnchor();
       dragging = true;
       startPX = e.clientX;
       startPY = e.clientY;
@@ -179,6 +185,13 @@ import '../styles/theme.css';
     const emailEl  = document.getElementById('widget-email')    as HTMLElement;
     if (!calEl || !emailEl) return;
 
+    initDrag(calEl,   'calendar');
+    initDrag(emailEl, 'email');
+
+    // Anchored layout takes precedence over free positions.
+    const { widgetAnchor } = await storageGet('widgetAnchor') as any;
+    if (widgetAnchor) { applyAnchor(widgetAnchor); return; }
+
     const { widgetPositions = {} } = await storageGet('widgetPositions') as any;
     const dw = desktop.offsetWidth;
     const dh = desktop.offsetHeight;
@@ -191,49 +204,55 @@ import '../styles/theme.css';
     calEl.style.top   = `${clamp(cal.top,  0, dh - CARD_H)}px`;
     emailEl.style.left = `${clamp(eml.left, 0, dw - CARD_W)}px`;
     emailEl.style.top  = `${clamp(eml.top,  0, dh - CARD_H)}px`;
-
-    initDrag(calEl,   'calendar');
-    initDrag(emailEl, 'email');
   }
 
-  // ── Anchor the widget cards to an edge ──────────────────────────────────────
-  function setPos(el: HTMLElement, left: number, top: number) {
-    const desktop = document.getElementById('desktop')!;
-    el.style.left = clamp(left, 0, desktop.offsetWidth  - el.offsetWidth)  + 'px';
-    el.style.top  = clamp(top,  0, desktop.offsetHeight - el.offsetHeight) + 'px';
+  // ── Anchor the widget cards to an edge (flex layout) ────────────────────────
+  // Flexbox does the heavy lifting: it keeps the cards aligned to the edge and
+  // re-packs/animates them automatically as a card collapses/expands (its height
+  // animates, flex re-lays out each frame). 'bottom' uses align-items:flex-end so
+  // a collapsing card keeps its title bar at the bottom; 'top' uses flex-start.
+  let currentAnchor: string | null = null;
+
+  function applyAnchor(side: string) {
+    const zone = document.getElementById('anchor-zone')!;
+    const cal  = document.getElementById('widget-calendar') as HTMLElement;
+    const eml  = document.getElementById('widget-email')    as HTMLElement;
+    zone.appendChild(cal);
+    zone.appendChild(eml);
+    [cal, eml].forEach(el => { el.style.left = ''; el.style.top = ''; el.style.zIndex = ''; });
+    zone.setAttribute('data-side', side);
+    currentAnchor = side;
   }
 
-  async function anchorWidgets(side: string) {
+  // Move the cards back to free (absolute) positioning, keeping their current
+  // on-screen position. Called when the user starts dragging an anchored card.
+  function clearAnchor() {
+    const zone    = document.getElementById('anchor-zone')!;
+    if (!zone.hasAttribute('data-side')) return;
     const desktop = document.getElementById('desktop')!;
     const cal = document.getElementById('widget-calendar') as HTMLElement;
     const eml = document.getElementById('widget-email')    as HTMLElement;
-    if (!cal || !eml) return;
-    const dw = desktop.offsetWidth, dh = desktop.offsetHeight;
-    const m = 16, gap = 16, shelf = SHELF_CLEARANCE;
-    const calW = cal.offsetWidth, emlW = eml.offsetWidth;
-    const calH = cal.offsetHeight, emlH = eml.offsetHeight;
+    const dr = desktop.getBoundingClientRect();
+    [cal, eml].forEach(el => {
+      const r = el.getBoundingClientRect();
+      desktop.appendChild(el);
+      el.style.left = (r.left - dr.left) + 'px';
+      el.style.top  = (r.top  - dr.top)  + 'px';
+    });
+    zone.removeAttribute('data-side');
+    currentAnchor = null;
+    storageSet({
+      widgetAnchor: null,
+      widgetPositions: {
+        calendar: { left: cal.offsetLeft, top: cal.offsetTop },
+        email:    { left: eml.offsetLeft, top: eml.offsetTop },
+      },
+    });
+  }
 
-    let cp = { left: m, top: m }, ep = { left: dw - emlW - m, top: m };
-    if (side === 'top') {
-      cp = { left: m,            top: m };
-      ep = { left: dw - emlW - m, top: m };
-    } else if (side === 'bottom') {
-      cp = { left: m,            top: dh - calH - shelf };
-      ep = { left: dw - emlW - m, top: dh - emlH - shelf };
-    } else if (side === 'left') {
-      cp = { left: m, top: m };
-      ep = { left: m, top: m + calH + gap };
-    } else if (side === 'right') {
-      cp = { left: dw - calW - m, top: m };
-      ep = { left: dw - emlW - m, top: m + calH + gap };
-    }
-    setPos(cal, cp.left, cp.top);
-    setPos(eml, ep.left, ep.top);
-
-    const { widgetPositions = {} } = await storageGet('widgetPositions') as any;
-    widgetPositions.calendar = { left: cal.offsetLeft, top: cal.offsetTop };
-    widgetPositions.email    = { left: eml.offsetLeft, top: eml.offsetTop };
-    await storageSet({ widgetPositions });
+  async function anchorWidgets(side: string) {
+    applyAnchor(side);
+    await storageSet({ widgetAnchor: side });
   }
 
   // ── Desktop (wallpaper) menu ────────────────────────────────────────────────
@@ -304,6 +323,31 @@ import '../styles/theme.css';
     /* initial offscreen — JS sets real position immediately */
     left: -9999px; top: -9999px;
   }
+
+  /* ── Anchor zone — flex layout for edge-anchored widgets ─────────────
+     Spans the desktop above the shelf. Flexbox keeps the cards aligned and
+     re-packs/animates them as a card collapses (its height animates). */
+  #anchor-zone {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 72px;   /* clear the shelf (56 + 16) */
+    display: none;
+    pointer-events: none;                       /* empty areas pass clicks through */
+    z-index: 10;
+  }
+  #anchor-zone[data-side] { display: flex; }
+  #anchor-zone > .widget-wrapper {
+    position: relative;
+    left: auto; top: auto;
+    pointer-events: auto;
+  }
+  /* Vertical edges (top/bottom): side-by-side row, centred horizontally.
+     Bottom aligns to flex-end so a collapsing card keeps its title bar down. */
+  #anchor-zone[data-side="top"]    { flex-flow: row;    justify-content: center; align-items: flex-start; gap: 24px; padding: 16px 24px; }
+  #anchor-zone[data-side="bottom"] { flex-flow: row;    justify-content: center; align-items: flex-end;   gap: 24px; padding: 16px 24px; }
+  /* Horizontal edges (left/right): stacked column, vertically centred, with a
+     greater horizontal gap from the edge; re-packs as cards collapse/expand. */
+  #anchor-zone[data-side="left"]   { flex-flow: column; justify-content: center; align-items: flex-start; gap: 16px; padding: 24px 56px; }
+  #anchor-zone[data-side="right"]  { flex-flow: column; justify-content: center; align-items: flex-end;   gap: 16px; padding: 24px 56px; }
 
   /* ── Bottom shelf ───────────────────────────────────────────────── */
   /*
