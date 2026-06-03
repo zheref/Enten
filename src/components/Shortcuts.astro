@@ -217,6 +217,12 @@
     const shelf = document.getElementById('shelf-apps');
     if (!shelf) return;
     let dragEl: HTMLElement | null = null;
+    let dropAfter: HTMLElement | null = null;   // insert before this (null = end)
+
+    // Glowing vertical bar previewing where the icon will land.
+    const indicator = document.createElement('span');
+    indicator.className = 'drop-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
 
     const bookmarkIcons = () =>
       Array.from(shelf.querySelectorAll('.shelf-icon[data-kind="bookmark"]')) as HTMLElement[];
@@ -236,24 +242,33 @@
       if (!dragEl) return;
       e.preventDefault();
       e.dataTransfer!.dropEffect = 'move';
-      // Insert before the first bookmark whose horizontal midpoint is past the
-      // cursor; otherwise drop at the end of the bookmark run.
+      // First bookmark (other than the dragged one) whose midpoint is past the
+      // cursor → insert before it; otherwise the end of the bookmark run.
       const after = bookmarkIcons().filter(el => el !== dragEl).find(el => {
         const r = el.getBoundingClientRect();
         return e.clientX < r.left + r.width / 2;
-      });
-      if (after) shelf.insertBefore(dragEl, after);
-      else shelf.appendChild(dragEl);
+      }) || null;
+      dropAfter = after;
+      // Move the preview indicator to that gap (don't move the icon yet).
+      if (after) shelf.insertBefore(indicator, after);
+      else shelf.appendChild(indicator);
     });
 
-    shelf.addEventListener('drop', (e: DragEvent) => { if (dragEl) e.preventDefault(); });
-
-    shelf.addEventListener('dragend', async () => {
+    shelf.addEventListener('drop', async (e: DragEvent) => {
       if (!dragEl) return;
-      dragEl.classList.remove('dragging');
-      dragEl = null;
+      e.preventDefault();
+      if (dropAfter) shelf.insertBefore(dragEl, dropAfter);
+      else shelf.appendChild(dragEl);
+      indicator.remove();
       const order = bookmarkIcons().map(el => el.dataset.url).filter(Boolean);
       await storageSet({ bookmarkOrder: order });
+    });
+
+    shelf.addEventListener('dragend', () => {
+      indicator.remove();
+      dragEl?.classList.remove('dragging');
+      dragEl = null;
+      dropAfter = null;
     });
   }
 
@@ -294,6 +309,21 @@
 
   /* Bookmark being dragged to reorder */
   .shelf-icon.dragging { opacity: 0.4; cursor: grabbing; }
+
+  /* Glowing vertical bar previewing the drop position */
+  .drop-indicator {
+    flex-shrink: 0;
+    width: 3px;
+    height: 34px;
+    margin: 0 2px;
+    border-radius: 2px;
+    background: var(--md-sys-color-primary);
+    animation: drop-indicator-glow 900ms ease-in-out infinite;
+  }
+  @keyframes drop-indicator-glow {
+    0%, 100% { box-shadow: 0 0 6px 0 var(--md-sys-color-primary); opacity: 0.85; }
+    50%      { box-shadow: 0 0 12px 2px var(--md-sys-color-primary); opacity: 1; }
+  }
 
   /* Divider between the configured shortcuts and the Chrome bookmarks */
   .shelf-sep {
