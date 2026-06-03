@@ -107,7 +107,9 @@ import '../styles/theme.css';
       if (!dragging) return;
       const desktop = document.getElementById('desktop')!;
       const maxL = desktop.offsetWidth  - el.offsetWidth;
-      const maxT = desktop.offsetHeight - el.offsetHeight - SHELF_CLEARANCE;
+      // Allow the full desktop height — cards may slide under the shelf, which
+      // sits above them in z-order (it's z-index 20, the cards are z-index 10).
+      const maxT = desktop.offsetHeight - el.offsetHeight;
 
       el.style.left = clamp(startLeft + e.clientX - startPX, 0, maxL) + 'px';
       el.style.top  = clamp(startTop  + e.clientY - startPY, 0, Math.max(0, maxT)) + 'px';
