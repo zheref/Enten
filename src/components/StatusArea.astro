@@ -1,7 +1,8 @@
 ---
 /**
  * StatusArea — Chrome OS-style system tray for the shelf's right side.
- *   Account (md-icon-button + md-menu) · Theme toggle (md-icon-button + md-menu) · Clock
+ *   Custom data (export/import/clear) · Account · Theme toggle · Clock
+ *   — each a borderless md-icon-button opening a centered MD3 menu.
  *
  * Theme toggle cycles light / auto / dark, persisted in chrome.storage.local
  * as { themeMode }, applied by toggling .dark-scheme on <html>.
@@ -9,6 +10,40 @@
 ---
 
 <div class="status-area">
+
+  <!-- Custom data — export / import / clear, borderless icon button + MD3 menu -->
+  <div class="data-control">
+    <md-icon-button id="data-btn" title="Custom data"
+                    aria-label="Custom data" aria-haspopup="menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M9 3 5 6.99h3V14h2V6.99h3L9 3zm7 14.01V10h-2v7.01h-3L15 21l4-3.99h-3z"/>
+      </svg>
+    </md-icon-button>
+
+    <md-menu id="data-menu" anchor="data-btn" positioning="fixed" y-offset="16"
+             anchor-corner="start-start" menu-corner="end-start">
+      <md-menu-item id="data-export">
+        <div slot="headline">Export Custom Data</div>
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+      </md-menu-item>
+      <md-menu-item id="data-import">
+        <div slot="headline">Import Custom Data</div>
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+        </svg>
+      </md-menu-item>
+      <md-menu-item id="data-clear" class="data-clear" keep-open>
+        <div slot="headline">Clear Custom Data</div>
+        <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+        </svg>
+      </md-menu-item>
+    </md-menu>
+
+    <input type="file" id="data-import-input" accept="application/json,.json" hidden />
+  </div>
 
   <!-- Auth — borderless person icon button + MD3 account menu -->
   <div class="auth-control">
@@ -81,6 +116,8 @@
   import { storageGet, storageSet, storageRemove } from '../lib/storage.js';
   import { signOut } from '../lib/google.js';
   import { openCenteredMenu } from '../lib/menu.js';
+  import { showSnackbar } from '../lib/snackbar.js';
+  import { buildExport, importConfig, clearConfig } from '../lib/userdata.js';
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   // SVG glyph (24×24 path) for each mode — shown on the toggle button.
@@ -235,6 +272,87 @@
   });
 
   checkAuth();
+
+  // ── Custom data (export / import / clear) ───────────────────────────────────
+  const dataBtn   = document.getElementById('data-btn');
+  const dataMenu  = document.getElementById('data-menu') as any;
+  const clearItem = document.getElementById('data-clear');
+  const importInput = document.getElementById('data-import-input') as HTMLInputElement;
+  let clearArmTimer: number | undefined;
+
+  function disarmClear() {
+    if (clearArmTimer) { clearTimeout(clearArmTimer); clearArmTimer = undefined; }
+    clearItem?.removeAttribute('data-armed');
+  }
+
+  // Open the menu centred on the button; keep the button's state ON.
+  dataBtn?.addEventListener('click', () => {
+    if (!dataMenu) return;
+    if (dataMenu.open) { dataMenu.open = false; return; }
+    openCenteredMenu(dataMenu, dataBtn);
+    dataBtn.classList.add('menu-active');
+    dataBtn.setAttribute('aria-expanded', 'true');
+  });
+  dataMenu?.addEventListener('closed', () => {
+    dataBtn?.classList.remove('menu-active');
+    dataBtn?.setAttribute('aria-expanded', 'false');
+    disarmClear();                              // cancel a pending clear confirmation
+  });
+
+  // Export → download a JSON file with all custom overrides.
+  document.getElementById('data-export')?.addEventListener('click', async () => {
+    try {
+      const payload = await buildExport();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
+      a.href = url; a.download = `enten-config-${stamp}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      const n = Object.keys(payload.data).length;
+      showSnackbar(n ? 'Custom data exported' : 'Exported (no custom data yet)');
+    } catch (e) {
+      console.error('[Enten] Export failed', e);
+      showSnackbar('Couldn’t export your data');
+    }
+  });
+
+  // Import → pick a JSON file, validate, install, then reload to apply.
+  document.getElementById('data-import')?.addEventListener('click', () => importInput?.click());
+  importInput?.addEventListener('change', async () => {
+    const file = importInput.files?.[0];
+    importInput.value = '';                      // allow re-importing the same file later
+    if (!file) return;
+    try {
+      const obj = JSON.parse(await file.text());
+      const keys = await importConfig(obj);
+      showSnackbar(`Imported ${keys.length} setting${keys.length === 1 ? '' : 's'} — reloading…`);
+      setTimeout(() => location.reload(), 800);
+    } catch (e) {
+      console.error('[Enten] Import failed', e);
+      showSnackbar('Invalid configuration file');
+    }
+  });
+
+  // Clear → two-click confirm (the item is keep-open, so the menu stays put).
+  clearItem?.addEventListener('click', async () => {
+    if (clearItem.getAttribute('data-armed') !== '1') {
+      clearItem.setAttribute('data-armed', '1');
+      showSnackbar('Click "Clear Custom Data" again to confirm', 4000);
+      clearArmTimer = window.setTimeout(disarmClear, 4000);
+      return;
+    }
+    disarmClear();
+    try {
+      await clearConfig();
+      showSnackbar('Custom data cleared — reloading…');
+      setTimeout(() => location.reload(), 800);
+    } catch (e) {
+      console.error('[Enten] Clear failed', e);
+      showSnackbar('Couldn’t clear your data');
+    }
+  });
 </script>
 
 <style>
@@ -253,7 +371,7 @@
 
   /* While a status button's menu is open, keep a persistent round state layer
      so it's clear which item the menu belongs to. */
-  #theme-btn.menu-active, #auth-btn.menu-active {
+  #theme-btn.menu-active, #auth-btn.menu-active, #data-btn.menu-active {
     background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
     border-radius: var(--md-sys-shape-corner-full);
   }
@@ -261,6 +379,18 @@
   /* Borderless account button + anchored account menu */
   .auth-control { position: relative; display: flex; align-items: center; }
   #auth-btn { --md-icon-button-icon-color: var(--shelf-glyph); }
+
+  /* Borderless custom-data button + anchored menu */
+  .data-control { position: relative; display: flex; align-items: center; }
+  #data-btn { --md-icon-button-icon-color: var(--shelf-glyph); }
+  /* Clear is destructive — tint it, and make the armed (confirm) state obvious. */
+  #data-menu .data-clear {
+    --md-menu-item-label-text-color: var(--md-sys-color-error);
+    --md-menu-item-leading-icon-color: var(--md-sys-color-error);
+  }
+  #data-menu .data-clear[data-armed="1"] {
+    background: color-mix(in srgb, var(--md-sys-color-error) 14%, transparent);
+  }
 
   /* Identity row is a disabled md-menu-item; keep its text legible (the
      default disabled 38% opacity is too faint to read an email address). */
@@ -283,22 +413,25 @@
      We can reshape the items because md-menu-item's internal .list-item / md-item
      use `border-radius: inherit` — so a border-radius on the host cascades to the
      ripple, the selected fill, and the content. */
-  #theme-menu, #auth-menu {
+  #theme-menu, #auth-menu, #data-menu {
     --md-menu-container-shape: var(--md-sys-shape-corner-extra-large); /* 28dp */
     --md-menu-top-space: 8px;
     --md-menu-bottom-space: 8px;
   }
   #theme-menu md-menu-item,
-  #auth-menu  md-menu-item {
+  #auth-menu  md-menu-item,
+  #data-menu  md-menu-item {
     border-radius: var(--md-sys-shape-corner-large); /* 16dp — Expressive item shape */
     margin: 2px 8px;                                  /* inset from container edges */
   }
   /* Slightly more breathing room at the very top/bottom so pills clear the
      container's large rounded corners. */
   #theme-menu md-menu-item:first-of-type,
-  #auth-menu  md-menu-item:first-of-type { margin-top: 4px; }
+  #auth-menu  md-menu-item:first-of-type,
+  #data-menu  md-menu-item:first-of-type { margin-top: 4px; }
   #theme-menu md-menu-item:last-of-type,
-  #auth-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
+  #auth-menu  md-menu-item:last-of-type,
+  #data-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
 
   /* ── Clock (interactive button with MD3 hover state layer) ───────── */
   .clock {
