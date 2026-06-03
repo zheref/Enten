@@ -2,43 +2,51 @@
 
 A Chrome project in two parts — a **browser theme** that styles the frame and
 toolbar, and a **dashboard extension** that replaces the New Tab page with a
-personal hub (email, calendar, shortcuts).
+ChromeOS-style desktop (email, calendar, app shortcuts) built with Astro and
+official Material Design 3 components.
 
 > **Important — they are mutually exclusive.**
 > Chrome treats any manifest containing a `"theme"` key as a *theme extension*
 > and silently ignores everything else in it, including `chrome_url_overrides`.
-> The two parts therefore live in separate manifests and are loaded independently.
+> The two parts therefore live in separate manifests and are loaded independently
+> (you can load both at once — see [Using both](#using-both-at-the-same-time)).
 
 ---
 
-## Palette
+## Brand palette
 
-| Role | Name | Hex | RGB |
-|------|------|-----|-----|
-| Header / tab strip | Prussian Blue | `#133552` | `19, 53, 82` |
-| Toolbar / active tab | Eggshell | `#F1E9DA` | `241, 233, 218` |
-| Accent / links / active tab label | Giants Orange | `#ED6733` | `237, 103, 51` |
-| Dark surface / NTP fill | Jaguar | `#292A2D` | `41, 42, 45` |
+| Name | Hex | RGB | Used by |
+|------|-----|-----|---------|
+| Eggshell | `#F1E9DA` | `241, 233, 218` | Naruto foreground |
+| Prussian Blue | `#133552` | `19, 53, 82` | Naruto background |
+| Giants Orange | `#ED6733` | `237, 103, 51` | Classic theme accent (Part 1) |
+| Medium Vermillion | `#db5d3f` | `219, 93, 63` | Naruto accent (Part 2) |
+| Well Read | `#b13031` | `177, 48, 49` | Kylo Ren accent |
+| Cold Gray | `#2D2F34` | `45, 47, 52` | Kylo Ren background |
+| Ash | `#C5C4B4` | `197, 196, 180` | Kylo Ren foreground |
+| Jaguar | `#292A2D` | `41, 42, 45` | Classic theme NTP fill |
 
 ---
 
 ## Part 1 — Browser Theme
 
-Styles the **tab strip, toolbar, address bar**, and inactive-tab colours.
-Does **not** replace the New Tab page — Chrome's default NTP is used.
+The standalone theme at the **repo root** (`manifest.json`). Styles the **tab
+strip, toolbar, address bar**, and inactive-tab colours. Does **not** replace
+the New Tab page — Chrome's default NTP is used.
 
 ### What it controls
 
-| Chrome area | Value |
-|-------------|-------|
-| Tab strip background | Prussian Blue |
-| Toolbar / active-tab background | Eggshell |
-| Active tab label | Giants Orange |
-| Inactive tab labels | Muted steel-blue |
-| Toolbar icons | Giants Orange (darker shade) |
-| Omnibox background | Near-white warm |
-| NTP background fill (behind wallpaper) | Jaguar |
-| NTP wallpaper | `naruto-swift.png` (2560 × 1440, centered) |
+| Chrome area | Source colour | Value |
+|-------------|---------------|-------|
+| Tab strip background | Prussian Blue | `19, 53, 82` |
+| Toolbar / active-tab background | Eggshell | `241, 233, 218` |
+| Active tab label | Giants Orange | `237, 103, 51` |
+| Inactive tab labels | Muted steel-blue | `178, 205, 222` |
+| Toolbar icons | dark tint | `tints.buttons` lightness `0.38` |
+| Omnibox background | Near-white warm | `255, 252, 247` |
+| NTP background fill (behind wallpaper) | Jaguar | `41, 42, 45` |
+| NTP links | Giants Orange | `237, 103, 51` |
+| NTP wallpaper | `images/naruto-swift.png` (2560 × 1440, centered) | — |
 
 ### Files
 
@@ -46,7 +54,8 @@ Does **not** replace the New Tab page — Chrome's default NTP is used.
 manifest.json          ← Chrome reads this for the theme
 images/
 ├── naruto-swift.jpg   ← Original 4K source (reference)
-└── naruto-swift.png   ← Active wallpaper (2560 × 1440)
+├── naruto-swift.png   ← Active wallpaper (2560 × 1440)
+└── kylo-ren-4k.jpg    ← Alternate wallpaper (used by the dashboard theme picker)
 ```
 
 ### Install (unpacked)
@@ -70,6 +79,10 @@ To update after pulling changes: click **↺** on `chrome://extensions`.
 **Change colours** — edit the `[R, G, B]` triplets in `manifest.json → theme → colors`.
 Full key reference: [`theme.config.md`](theme.config.md) · Palette notes: [`palette.md`](palette.md).
 
+> Prefer not to hand-edit JSON? The **dashboard** can generate a ready-to-install
+> Chrome theme `.zip` for you from a colour palette — see
+> [Theme system](#theme-system) below.
+
 ### Publish (Chrome Web Store — Category: Themes)
 
 ```bash
@@ -87,42 +100,109 @@ Upload to the [Developer Dashboard](https://chrome.google.com/webstore/devconsol
 
 ## Part 2 — Dashboard Extension
 
-Replaces the **New Tab page** with a personal dashboard: upcoming calendar
-events, recent Gmail messages, and a customisable app-shortcut grid, all
-styled with the Enten palette.
+Replaces the **New Tab page** with a ChromeOS-style desktop: the brand wallpaper,
+draggable widget cards (calendar + inbox), and a floating glass **shelf** (bottom
+app bar) of app shortcuts — all styled with official Material Design 3 components.
 
-Because Chrome ignores `chrome_url_overrides` in any manifest that also
-contains `"theme"`, the dashboard lives in its own separate manifest
-(`public/manifest.json`) and is built with **Astro** into `dist/`.
+Because Chrome ignores `chrome_url_overrides` in any manifest that also contains
+`"theme"`, the dashboard lives in its own manifest (`public/manifest.json`) and is
+built with **Astro** into `dist/`.
 
 ### What it provides
 
+**Widgets**
+
 | Widget | Source |
 |--------|--------|
-| App shortcuts | Stored in `chrome.storage.local`; editable at runtime |
 | Calendar events | Google Calendar API via `chrome.identity` |
 | Inbox preview | Gmail API via `chrome.identity` |
-| Auth | `chrome.identity.getAuthToken()` — uses Chrome's signed-in account |
+| App shortcuts | Chrome Bookmarks Bar + fixed defaults, in the shelf |
+| Auth / account | `chrome.identity.getAuthToken()` — uses Chrome's signed-in account |
+
+**Desktop & UI**
+
+- **Draggable widget cards** — drag anywhere on the desktop; positions persist.
+- **Edge anchoring** — right-click the wallpaper → *Anchor Widgets* → Top / Right /
+  Bottom / Left. Anchored widgets rearrange automatically on collapse/expand.
+- **Collapsible cards** — each widget card can collapse to just its title bar.
+- **Floating glass shelf** — a bottom app bar with rounded corners, MD3 elevation,
+  and a scheme-aware reflective glass rim.
+- **App shortcuts** — circular ChromeOS-style icons drawn from your **Bookmarks
+  Bar** plus a few fixed defaults. Bookmarks can be **dragged to reorder** (with a
+  live drop indicator).
+- **Right-click menu on icons** — *Open in This Tab* / *Open in New Tab* /
+  *Copy Link* / *Customize Icon*.
+- **Status area** (bottom-right) — connect/disconnect your Google account, switch
+  **light / auto / dark** mode, and a live clock — each via a centered MD3 menu.
+- **Snackbars & tooltips** — MD3 snackbars (e.g. "Link copied") and icon tooltips.
+
+### Theme system
+
+The dashboard ships a **theme picker** (right-click the wallpaper → *Customize*).
+Each theme bundles a wallpaper and three brand colours mapped to consistent roles:
+
+| Role | Drives |
+|------|--------|
+| **accent** | MD3 buttons & highlights on the dashboard; Chrome-theme tab strip; NTP links |
+| **background** | Chrome-theme toolbar + selected tab + NTP fill; dashboard shelf/glass tint |
+| **foreground** | Chrome-theme icons & text |
+
+| Theme | Accent | Background | Foreground |
+|-------|--------|------------|------------|
+| **Naruto** | Medium Vermillion `#db5d3f` | Prussian Blue `#133552` | Eggshell `#F1E9DA` |
+| **Kylo Ren** | Well Read `#b13031` | Cold Gray `#2D2F34` | Ash `#C5C4B4` |
+
+Picking a theme recolours the live dashboard instantly. The **Download Chrome
+theme (.zip)** button generates an installable theme matching the selected palette,
+named e.g. **"Enten - Naruto Theme"** — load it as an unpacked theme (Part 1 style)
+or zip it for the Web Store.
+
+### Per-app icon customization
+
+Right-click any shelf icon → **Customize Icon** to open a floating MD3 panel:
+
+- **Icon source picker** — choose among several favicon resolutions/providers
+  (Chrome's cached icon, Google faviconV2 ×128/×64, Google domain, DuckDuckGo,
+  the site's own `/favicon.ico`).
+- **Custom image URL** — the trailing **+** tile reveals a field to paste any
+  image URL (ICO / PNG / JPG).
+- **Move (nudge) arrows** — reposition the icon within its circle; works for any
+  source.
+- **Containment scale** — slider from 0–100 % (100 fills & clips the circle; lower
+  shrinks the glyph with the circle visible around it).
+- **Circle background** — colour swatch + screen eyedropper.
+
+All overrides persist per-URL in `chrome.storage.local` and apply on every render.
 
 ### Files
 
 ```
 src/
-├── pages/index.astro            ← NTP layout (3-column grid)
+├── pages/index.astro            ← Desktop shell: wallpaper, draggable widgets, shelf
 ├── components/
-│   ├── Shortcuts.astro          ← App icon grid
-│   ├── CalendarWidget.astro     ← Upcoming events
-│   ├── EmailWidget.astro        ← Inbox preview
-│   └── AuthPanel.astro          ← Google sign-in / sign-out
+│   ├── Shortcuts.astro          ← Shelf app icons + drag-reorder + right-click menu
+│   ├── CalendarWidget.astro     ← Google Calendar card
+│   ├── EmailWidget.astro        ← Gmail inbox card
+│   ├── StatusArea.astro         ← Account · theme mode · clock (icon-button menus)
+│   ├── CustomizePanel.astro     ← Theme picker + downloadable Chrome theme (.zip)
+│   └── ContainmentAdjuster.astro← "Customize Icon" panel
 ├── lib/
 │   ├── google.js                ← chrome.identity + Calendar + Gmail helpers
-│   └── storage.js               ← chrome.storage.local wrapper
-└── styles/theme.css             ← Enten CSS variables
+│   ├── storage.js               ← chrome.storage.local wrapper
+│   ├── themes.js                ← Theme registry + dashboard apply + Chrome-theme builder
+│   ├── favicons.js              ← Favicon resolution + source candidates
+│   ├── menu.js                  ← Center-on-anchor helper for md-menu
+│   ├── snackbar.js              ← Reusable MD3 snackbar
+│   ├── cursor-fix.js            ← Default-cursor policy inside md-* shadow roots
+│   └── md-components.ts         ← Registers the Material Web (md-*) custom elements
+└── styles/theme.css             ← MD3 token sheet (light/dark) + global component layer
 
 public/                          ← Copied verbatim to dist/ by Astro
 ├── manifest.json                ← Dashboard extension manifest
 ├── background.js                ← MV3 service worker
-└── images/naruto-swift.png      ← NTP wallpaper
+└── images/
+    ├── naruto-swift.jpg         ← Naruto wallpaper
+    └── kylo-ren-4k.jpg          ← Kylo Ren wallpaper
 
 dist/                            ← Build output — gitignored, Chrome loads from here
 ```
@@ -153,6 +233,10 @@ npm run build          # emits dist/
 3. Open a new tab — the dashboard loads.
 
 To iterate: edit source → `npm run build` → click **↺** on `chrome://extensions`.
+
+> The dashboard requests the `favicon`, `bookmarks`, `storage`, and `identity`
+> permissions. If Chrome flags a new permission after an update, re-enable the
+> extension at `chrome://extensions`.
 
 ### Enjoy it full-screen (hide Chrome's New Tab footer)
 
@@ -204,6 +288,9 @@ You can have both loaded simultaneously — they are independent extensions:
 Chrome applies the theme's frame/toolbar colours **and** shows the dashboard's
 custom NTP — each extension handles a different layer of the browser UI.
 
+> Tip: for a fully matched look, pick a theme in the dashboard's *Customize* panel,
+> download its Chrome theme `.zip`, and load that as the Part 1 theme.
+
 ---
 
 ## Project structure (full)
@@ -246,7 +333,9 @@ git branch -D experiment/my-idea   # or discard
 | Dashboard NTP not showing | Extension loaded from repo root (theme manifest ignores `chrome_url_overrides`) | Load from `dist/`, not the repo root |
 | Custom NTP not showing even from `dist/` | Another extension owns the NTP | Disable other "new tab" extensions |
 | A footer bar / "Customize Chrome" button overlaps the shelf | Chrome's built-in New Tab footer | Customize Chrome → **Footer** → turn off *"Show footer on New Tab page"* |
-| `_astro` directory error | Old build before the fix | Run `npm run build` again and reload |
+| App shortcuts / bookmarks missing | `bookmarks` or `favicon` permission not granted | Re-enable the extension at `chrome://extensions` |
+| A favicon looks wrong / generic | Default source didn't resolve | Right-click the icon → **Customize Icon** → pick another source or paste a custom URL |
+| `_astro` directory error | Old build before the `assets/` rename | Run `npm run build` again and reload |
 | Theme won't load | `manifest.json` syntax error | Validate at [jsonlint.com](https://jsonlint.com) |
 | Calendar / Gmail not loading | OAuth client ID not set | Follow `DASHBOARD.md §Step 2` |
 | "Unverified app" warning on sign-in | Expected for personal/unpacked use | Click *Continue* — safe for your own extension |

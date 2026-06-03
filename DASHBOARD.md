@@ -9,32 +9,41 @@ fully working personal dashboard — and what to expect at each step.
 
 ```
 src/
-├── pages/index.astro           ← Desktop shell: wallpaper, draggable widgets, shelf
+├── pages/index.astro           ← Desktop shell: wallpaper, draggable widgets, anchoring, shelf
 ├── components/
-│   ├── Shortcuts.astro         ← Shelf app icons (favicons, configurable scale/elevation)
+│   ├── Shortcuts.astro         ← Shelf app icons + drag-reorder + right-click menu
 │   ├── CalendarWidget.astro    ← Google Calendar card (md-elevated-card + md-list)
 │   ├── EmailWidget.astro       ← Gmail card (md-elevated-card + md-list)
-│   └── StatusArea.astro        ← Auth (md-text-button) · theme toggle (md segmented) · clock
+│   ├── StatusArea.astro        ← Account · theme mode · clock (md-icon-button + md-menu)
+│   ├── CustomizePanel.astro    ← Theme picker + downloadable Chrome theme (.zip)
+│   └── ContainmentAdjuster.astro ← "Customize Icon" panel (source, custom URL, nudge, scale, bg)
 ├── lib/
 │   ├── google.js               ← chrome.identity + Calendar + Gmail API calls
 │   ├── storage.js              ← chrome.storage.local wrapper
-│   └── md-components.ts         ← Registers the Material Web (md-*) custom elements
+│   ├── themes.js               ← Theme registry + dashboard apply + Chrome-theme builder
+│   ├── favicons.js             ← Favicon resolution + source candidates
+│   ├── menu.js                 ← Center-on-anchor helper for md-menu
+│   ├── snackbar.js             ← Reusable MD3 snackbar
+│   ├── cursor-fix.js           ← Default-cursor policy inside md-* shadow roots
+│   └── md-components.ts        ← Registers the Material Web (md-*) custom elements
 └── styles/theme.css            ← MD3 token sheet (light/dark) + global component layer
 
 public/                         ← Copied verbatim to dist/ by Astro
 ├── manifest.json               ← Full extension manifest
 ├── background.js               ← MV3 service worker
-└── images/naruto-swift.png     ← Wallpaper
+└── images/
+    ├── naruto-swift.jpg        ← Naruto wallpaper
+    └── kylo-ren-4k.jpg         ← Kylo Ren wallpaper
 ```
 
 ### Material Design 3 — official components
 
 The UI is built on **[@material/web](https://github.com/material-components/material-web)**
 (Google's official Material Web Components): `md-elevated-card`, `md-list` /
-`md-list-item`, `md-icon-button`, `md-filled-button`, `md-text-button`,
-`md-fab`, and `md-outlined-segmented-button(-set)`. They render canonical MD3
-behaviour — notably `md-elevation` (shadow **plus** surface-tint, auto-tonal in
-dark mode), ripples, and typography.
+`md-list-item`, `md-icon-button`, `md-filled-button`, `md-menu` / `md-menu-item` /
+`md-sub-menu`, and `md-slider`. They render canonical MD3 behaviour — notably
+`md-elevation` (shadow **plus** surface-tint, auto-tonal in dark mode), ripples,
+and typography.
 
 They read our `--md-sys-*` tokens from `theme.css`, so the Enten palette
 and light/dark switching apply to them automatically. All `md-*` elements are
@@ -62,7 +71,9 @@ registered once via `src/lib/md-components.ts`, imported from the page script.
 | Background data refresh | ✅ | `chrome.alarms` API; stub in `background.js` |
 | Web Store publishing | ✅ | See §Publishing |
 | Filesystem JSON config | ❌ | Extensions are sandboxed; use `chrome.storage` instead |
-| Auto light/dark theme switching | ❌ | Chrome theme API has no `prefers-color-scheme` equivalent |
+| Dashboard light / auto / dark mode | ✅ | The dashboard's own MD3 tokens switch via the status-area menu (`themeMode`) |
+| Auto light/dark for the **Chrome theme** | ❌ | The Chrome *theme* API has no `prefers-color-scheme` equivalent |
+| Downloadable Chrome theme from a palette | ✅ | *Customize* panel builds an installable `.zip` (see §Theming) |
 
 ---
 
@@ -140,7 +151,7 @@ dist/
 ├── background.js      ← from public/
 ├── images/            ← from public/images/
 ├── index.html         ← compiled from src/pages/index.astro
-└── _astro/            ← bundled JS + CSS
+└── assets/            ← bundled JS + CSS (renamed from Astro's "_astro" — Chrome forbids "_" dirs)
 ```
 
 ---
@@ -211,6 +222,67 @@ chrome.storage.local.set({ shortcuts: [
   // …
 ]});
 ```
+
+---
+
+## Theming
+
+Themes live in `src/lib/themes.js`. Each entry bundles a wallpaper and three
+brand colours mapped to consistent roles:
+
+```js
+{ id: 'naruto', label: 'Naruto', src: '/images/naruto-swift.jpg',
+  accent: '#db5d3f', background: '#133552', foreground: '#F1E9DA' }
+```
+
+| Role | Drives (dashboard) | Drives (generated Chrome theme) |
+|------|--------------------|---------------------------------|
+| `accent` | MD3 `--md-sys-color-primary` (buttons/highlights) | tab strip (`frame`) + NTP links |
+| `background` | shelf / glass tint (`--shelf-tint`) | toolbar + selected tab + NTP fill |
+| `foreground` | — | icons & text |
+
+Built-in themes:
+
+| Theme | Accent | Background | Foreground |
+|-------|--------|------------|------------|
+| **Naruto** | `#db5d3f` Medium Vermillion | `#133552` Prussian Blue | `#F1E9DA` Eggshell |
+| **Kylo Ren** | `#b13031` Well Read | `#2D2F34` Cold Gray | `#C5C4B4` Ash |
+
+Right-click the wallpaper → **Customize** to open the theme picker. Selecting a
+theme recolours the live dashboard (`applyThemeToDashboard`) and persists under
+the `theme` key. **Download Chrome theme (.zip)** runs `buildThemeManifest()` +
+JSZip to emit an installable theme named **"Enten - <Theme> Theme"**.
+
+To add a theme, append an entry to `THEMES` (drop the wallpaper in
+`public/images/`) — the picker and zip builder pick it up automatically.
+
+The dashboard's own surface also switches **light / auto / dark** independently of
+the theme, via the status-area menu (persisted under `themeMode`).
+
+---
+
+## Customizing app icons
+
+Right-click any shelf icon → **Customize Icon**. The panel writes a per-URL entry
+to `chrome.storage.local` under `appOverrides`:
+
+```js
+appOverrides['https://github.com'] = {
+  scale: 60,                 // 0–100, % of the circle (100 fills & clips)
+  bg: '#0d1117',             // circle background colour
+  icon: 'https://…/x.png',   // chosen source or a custom image URL (optional)
+  offset: { x: 0, y: -2 },   // manual nudge within the circle, px (optional)
+}
+```
+
+- **Icon source picker** — Chrome's cached favicon, Google faviconV2 ×128/×64,
+  Google domain, DuckDuckGo, or the site's `/favicon.ico` (see `src/lib/favicons.js`).
+- **Custom URL** — the trailing **+** tile reveals a field to paste any image URL.
+- **Move arrows** — nudge the icon within the circle (any source).
+- **Reset** clears the override and restores the default.
+
+Bookmark icons can also be **dragged to reorder**; the order persists under
+`bookmarkOrder`.
 
 ---
 
