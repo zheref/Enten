@@ -25,6 +25,28 @@
   <!-- Populated by script -->
 </div>
 
+<!-- Shared right-click menu for any shelf icon (anchored in JS to the clicked one) -->
+<md-menu id="app-context-menu" positioning="fixed" anchor-corner="start-start" menu-corner="end-start">
+  <md-menu-item id="ctx-newtab">
+    <div slot="headline">Open in New Tab</div>
+    <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"/>
+    </svg>
+  </md-menu-item>
+  <md-menu-item id="ctx-thistab">
+    <div slot="headline">Open in This Tab</div>
+    <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h4v-2H5V8h14v10h-4v2h4c1.1 0 2-.9 2-2V6c0-1.1-.89-2-2-2zm-7 6l-4 4h3v6h2v-6h3z"/>
+    </svg>
+  </md-menu-item>
+  <md-menu-item id="ctx-copy">
+    <div slot="headline">Copy Link</div>
+    <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11z"/>
+    </svg>
+  </md-menu-item>
+</md-menu>
+
 <script>
   import { storageGet } from '../lib/storage.js';
 
@@ -59,9 +81,10 @@
     const scale = clamp(typeof item.scale === 'number' ? item.scale : scaleDefault, 0, 100);
     const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
     const label = esc(item.label ?? item.url ?? '');
+    // No target=_blank: a normal click opens in THIS tab. New-tab / copy are
+    // available from the right-click menu (and middle-click still opens a tab).
     return `
-      <a class="shelf-icon" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"
-         role="listitem" aria-label="${label}">
+      <a class="shelf-icon" href="${esc(item.url)}" role="listitem" aria-label="${label}">
         <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
           <img class="shelf-icon__favicon" style="width:${scale}%;height:${scale}%"
                src="${faviconFor(item.url)}" alt="" loading="lazy" />
@@ -102,7 +125,39 @@
     shelf.innerHTML = html;
   }
 
+  // ── Right-click context menu (shared, re-anchored per icon) ─────────────────
+  let ctxUrl = '';
+
+  function setupContextMenu() {
+    const shelf = document.getElementById('shelf-apps');
+    const menu  = document.getElementById('app-context-menu') as any;
+    if (!shelf || !menu) return;
+
+    // Open our menu instead of the browser's on right-click of an icon.
+    shelf.addEventListener('contextmenu', (e: MouseEvent) => {
+      const icon = (e.target as HTMLElement).closest('.shelf-icon') as HTMLElement | null;
+      if (!icon) return;
+      e.preventDefault();
+      ctxUrl = icon.getAttribute('href') || '';
+      menu.anchorElement = icon;
+      menu.open = true;
+    });
+
+    document.getElementById('ctx-newtab')?.addEventListener('click', () => {
+      if (ctxUrl) window.open(ctxUrl, '_blank');
+    });
+    document.getElementById('ctx-thistab')?.addEventListener('click', () => {
+      if (ctxUrl) window.location.href = ctxUrl;
+    });
+    document.getElementById('ctx-copy')?.addEventListener('click', async () => {
+      if (!ctxUrl) return;
+      try { await navigator.clipboard.writeText(ctxUrl); }
+      catch (err) { console.error('[SergioSwift] Copy link failed', err); }
+    });
+  }
+
   render();
+  setupContextMenu();
 </script>
 
 <!-- is:global — shelf icons are injected at runtime via innerHTML, which never

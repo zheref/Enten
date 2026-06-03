@@ -328,6 +328,22 @@ html, body {
   color: var(--md-sys-color-on-surface-variant);
 }
 
+/* ── M3 Expressive vertical-menu treatment — ALL md-menus ────────────────────
+   @material/web ships baseline M3; reshape menus toward the Expressive vertical
+   variant: a rounder container holding inset, rounded items. The selected item
+   still fills secondary-container via the canon md-menu-item[selected] state. */
+md-menu {
+  --md-menu-container-shape: var(--md-sys-shape-corner-extra-large);
+  --md-menu-top-space: 8px;
+  --md-menu-bottom-space: 8px;
+}
+md-menu md-menu-item {
+  border-radius: var(--md-sys-shape-corner-large);
+  margin: 2px 8px;
+}
+md-menu md-menu-item:first-of-type { margin-top: 4px; }
+md-menu md-menu-item:last-of-type  { margin-bottom: 4px; }
+
 /* ═══════════════════════════════════════════════════════════════════════════
    WIDGET CARD — collapsible (shared by Calendar & Email widgets)
 
