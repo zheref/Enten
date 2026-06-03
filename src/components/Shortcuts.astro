@@ -227,6 +227,13 @@
     const bookmarkIcons = () =>
       Array.from(shelf.querySelectorAll('.shelf-icon[data-kind="bookmark"]')) as HTMLElement[];
 
+    // Next bookmark after `el` in the DOM (skips the indicator / other nodes).
+    const nextBookmark = (el: HTMLElement): HTMLElement | null => {
+      let n = el.nextElementSibling as HTMLElement | null;
+      while (n && !n.matches('.shelf-icon[data-kind="bookmark"]')) n = n.nextElementSibling as HTMLElement | null;
+      return n;
+    };
+
     shelf.addEventListener('dragstart', (e: DragEvent) => {
       const icon = (e.target as HTMLElement).closest('.shelf-icon[data-kind="bookmark"]') as HTMLElement | null;
       if (!icon) return;
@@ -242,6 +249,8 @@
       if (!dragEl) return;
       e.preventDefault();
       e.dataTransfer!.dropEffect = 'move';
+      // Remove the indicator first so sibling math ignores it.
+      indicator.remove();
       // First bookmark (other than the dragged one) whose midpoint is past the
       // cursor → insert before it; otherwise the end of the bookmark run.
       const after = bookmarkIcons().filter(el => el !== dragEl).find(el => {
@@ -249,19 +258,25 @@
         return e.clientX < r.left + r.width / 2;
       }) || null;
       dropAfter = after;
-      // Move the preview indicator to that gap (don't move the icon yet).
-      if (after) shelf.insertBefore(indicator, after);
-      else shelf.appendChild(indicator);
+      // Only show the indicator when the drop would actually move the icon.
+      // (after === the icon's current next bookmark → it would land in place.)
+      if (after !== nextBookmark(dragEl)) {
+        if (after) shelf.insertBefore(indicator, after);
+        else shelf.appendChild(indicator);
+      }
     });
 
     shelf.addEventListener('drop', async (e: DragEvent) => {
       if (!dragEl) return;
       e.preventDefault();
-      if (dropAfter) shelf.insertBefore(dragEl, dropAfter);
-      else shelf.appendChild(dragEl);
       indicator.remove();
-      const order = bookmarkIcons().map(el => el.dataset.url).filter(Boolean);
-      await storageSet({ bookmarkOrder: order });
+      // Skip if it would land in its original position.
+      if (dropAfter !== nextBookmark(dragEl)) {
+        if (dropAfter) shelf.insertBefore(dragEl, dropAfter);
+        else shelf.appendChild(dragEl);
+        const order = bookmarkIcons().map(el => el.dataset.url).filter(Boolean);
+        await storageSet({ bookmarkOrder: order });
+      }
     });
 
     shelf.addEventListener('dragend', () => {
