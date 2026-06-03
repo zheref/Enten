@@ -217,8 +217,22 @@ html, body {
 .md3-state-layer {
   position: relative;
   overflow: hidden;
-  cursor: pointer;
 }
+
+/* ── Cursor policy ───────────────────────────────────────────────────────────
+   Desktop-app feel: the default arrow everywhere. The hand (pointer) is
+   reserved for declared affordances only — currently the expand/collapse
+   toggle. Dragging uses the grab/grabbing cursor (set inline by the drag code).
+   Add elements to the EXCEPTIONS list below to opt them back into the hand.    */
+:where(
+  a, button,
+  md-icon-button, md-filled-button, md-text-button,
+  md-menu-item, md-list-item,
+  .md3-state-layer, .shelf-icon, .clock
+) { cursor: default; }
+
+/* EXCEPTIONS — these keep the hand pointer */
+.widget-toggle, .widget-toggle * { cursor: pointer; }
 .md3-state-layer::before {
   content: '';
   position: absolute; inset: 0;
