@@ -45,6 +45,13 @@
       <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11z"/>
     </svg>
   </md-menu-item>
+  <!-- Bookmarks only — toggled in JS -->
+  <md-menu-item id="ctx-adjust">
+    <div slot="headline">Adjust Containment</div>
+    <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+    </svg>
+  </md-menu-item>
 </md-menu>
 
 <script>
@@ -77,16 +84,21 @@
   const esc = (s: string) => String(s).replace(/[&<>"]/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 
-  /** Build one shelf icon. scaleDefault/elevDefault apply when unset on the item. */
-  function iconHTML(item: any, scaleDefault = 100, elevDefault = 1): string {
+  /** Build one shelf icon.
+   *  kind: 'shortcut' (fixed) | 'bookmark' (overridable via Adjust Containment).
+   *  bg:   optional circle background override (hex). */
+  function iconHTML(item: any, scaleDefault = 100, elevDefault = 1,
+                    kind = 'shortcut', bg = ''): string {
     const scale = clamp(typeof item.scale === 'number' ? item.scale : scaleDefault, 0, 100);
     const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
     const label = esc(item.label ?? item.url ?? '');
+    const bgStyle = bg ? `background:${esc(bg)};` : '';
     // No target=_blank: a normal click opens in THIS tab. New-tab / copy are
     // available from the right-click menu (and middle-click still opens a tab).
     return `
-      <a class="shelf-icon" href="${esc(item.url)}" role="listitem" aria-label="${label}">
-        <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
+      <a class="shelf-icon" href="${esc(item.url)}" role="listitem" aria-label="${label}"
+         data-url="${esc(item.url)}" data-kind="${kind}">
+        <span class="shelf-icon__circle elev-${elev}" style="${bgStyle}" aria-hidden="true">
           <img class="shelf-icon__favicon" style="width:${scale}%;height:${scale}%"
                src="${faviconFor(item.url)}" alt="" loading="lazy" />
         </span>
@@ -111,27 +123,38 @@
     const shelf = document.getElementById('shelf-apps');
     if (!shelf) return;
 
-    // 1) Configured shortcuts (storage override → defaults)
+    // 1) Configured shortcuts (storage override → defaults) — fixed, not adjustable
     const { shortcuts } = await storageGet('shortcuts') as any;
     const items = shortcuts ?? DEFAULT_SHORTCUTS;
-    let html = items.map((s: any) => iconHTML(s)).join('');
+    let html = items.map((s: any) => iconHTML(s, 100, 1, 'shortcut')).join('');
 
-    // 2) Separator + Chrome Bookmarks Bar
+    // 2) Separator + Chrome Bookmarks Bar — overridable via Adjust Containment
     const bookmarks = await getBookmarksBar();
     if (bookmarks.length) {
+      const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
       html += '<span class="shelf-sep" aria-hidden="true"></span>';
-      html += bookmarks.map(b => iconHTML(b, 85, 1)).join('');
+      html += bookmarks.map(b => {
+        const ov = bookmarkOverrides[b.url] || {};
+        const scale = typeof ov.scale === 'number' ? ov.scale : 85;
+        return iconHTML({ ...b, scale }, 85, 1, 'bookmark', ov.bg || '');
+      }).join('');
     }
 
     shelf.innerHTML = html;
   }
 
+  // Allow other components (the containment adjuster) to force a re-render.
+  window.addEventListener('shelf-icons-refresh', () => { render(); });
+
   // ── Right-click context menu (shared, re-anchored per icon) ─────────────────
   let ctxUrl = '';
+  let ctxKind = 'shortcut';
+  let ctxLabel = '';
 
   function setupContextMenu() {
     const shelf = document.getElementById('shelf-apps');
     const menu  = document.getElementById('app-context-menu') as any;
+    const adjustItem = document.getElementById('ctx-adjust') as HTMLElement;
     if (!shelf || !menu) return;
 
     // Open our menu instead of the browser's on right-click of an icon.
@@ -139,7 +162,11 @@
       const icon = (e.target as HTMLElement).closest('.shelf-icon') as HTMLElement | null;
       if (!icon) return;
       e.preventDefault();
-      ctxUrl = icon.getAttribute('href') || '';
+      ctxUrl   = icon.getAttribute('href') || '';
+      ctxKind  = icon.dataset.kind || 'shortcut';
+      ctxLabel = icon.getAttribute('aria-label') || '';
+      // "Adjust Containment" applies to bookmark-fetched apps only.
+      if (adjustItem) adjustItem.style.display = ctxKind === 'bookmark' ? '' : 'none';
       menu.anchorElement = icon;
       // Hide the tooltip first, then reveal the menu once it has faded out.
       shelf.classList.add('menu-open');
@@ -163,6 +190,12 @@
         showSnackbar('Couldn’t copy link');
         console.error('[SergioSwift] Copy link failed', err);
       }
+    });
+    document.getElementById('ctx-adjust')?.addEventListener('click', () => {
+      if (ctxKind !== 'bookmark' || !ctxUrl) return;
+      window.dispatchEvent(new CustomEvent('open-containment', {
+        detail: { url: ctxUrl, label: ctxLabel, favicon: faviconFor(ctxUrl) },
+      }));
     });
   }
 

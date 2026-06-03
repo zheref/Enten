@@ -1,0 +1,242 @@
+---
+/**
+ * ContainmentAdjuster — floating, closeable & collapsible card to tune a
+ * BOOKMARK icon's containment (scale) and circle background colour.
+ *
+ * Opened via the `open-containment` window event (dispatched from the shelf
+ * right-click menu). Edits persist to chrome.storage.local under
+ * `bookmarkOverrides` keyed by URL, and are applied live to the shelf icon.
+ * Reuses the global .widget-card chrome (glass header, roll-down body).
+ */
+---
+
+<md-elevated-card class="widget-card expanded containment-card is-hidden" id="containment-card">
+  <div class="widget-card__clip">
+
+    <div class="widget-card__header">
+      <span class="widget-card__icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+        </svg>
+      </span>
+      <span class="widget-card__title">Adjust Containment</span>
+      <md-icon-button class="widget-toggle" id="ct-toggle" aria-label="Collapse">
+        <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/>
+        </svg>
+      </md-icon-button>
+      <md-icon-button id="ct-close" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </md-icon-button>
+    </div>
+
+    <div class="widget-card__body">
+      <div class="widget-card__body-inner">
+        <div class="ct-content">
+
+          <!-- Live preview -->
+          <div class="ct-preview">
+            <span class="shelf-icon__circle elev-1 ct-preview__circle" id="ct-circle" aria-hidden="true">
+              <img class="shelf-icon__favicon" id="ct-img" alt="" />
+            </span>
+            <span class="ct-preview__label" id="ct-label"></span>
+          </div>
+
+          <!-- Containment scale -->
+          <div class="ct-field">
+            <div class="ct-field__label">
+              <span>Containment scale</span>
+              <span class="ct-field__value" id="ct-scale-val">85%</span>
+            </div>
+            <md-slider id="ct-scale" min="0" max="100" step="1" value="85" labeled></md-slider>
+          </div>
+
+          <!-- Circle background -->
+          <div class="ct-field">
+            <div class="ct-field__label"><span>Circle background</span></div>
+            <div class="ct-color-row">
+              <label class="ct-swatch" title="Pick a colour">
+                <input type="color" id="ct-color" value="#ffffff" />
+              </label>
+              <md-text-button id="ct-pick" has-icon>
+                <svg slot="icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.71 5.63l-2.34-2.34a.996.996 0 0 0-1.41 0l-3.12 3.12-1.23-1.21-1.41 1.41 1.18 1.18L4 16.42V20h3.58l7.05-7.05 1.18 1.18 1.41-1.41-1.21-1.23 3.12-3.12c.4-.4.4-1.03-.01-1.42zM6.92 19L5 17.08l8.06-8.06 1.92 1.92L6.92 19z"/>
+                </svg>
+                Pick from screen
+              </md-text-button>
+              <md-text-button id="ct-reset">Reset</md-text-button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</md-elevated-card>
+
+<script>
+  import { storageGet, storageSet } from '../lib/storage.js';
+  import { showSnackbar } from '../lib/snackbar.js';
+
+  const card    = document.getElementById('containment-card') as HTMLElement;
+  const img     = document.getElementById('ct-img') as HTMLImageElement;
+  const circle  = document.getElementById('ct-circle') as HTMLElement;
+  const labelEl = document.getElementById('ct-label') as HTMLElement;
+  const slider  = document.getElementById('ct-scale') as any;
+  const scaleVal= document.getElementById('ct-scale-val') as HTMLElement;
+  const colorIn = document.getElementById('ct-color') as HTMLInputElement;
+
+  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+  let url = '';
+  let scale = 85;
+  let bg = '#ffffff';
+  let saveTimer: number | undefined;
+
+  function findShelfIcon(): HTMLElement | null {
+    return Array.from(document.querySelectorAll('.shelf-icon'))
+      .find(a => (a as HTMLElement).dataset.url === url) as HTMLElement | null;
+  }
+
+  function applyPreview() {
+    img.style.width = scale + '%';
+    img.style.height = scale + '%';
+    circle.style.background = bg;
+  }
+  function applyToShelf() {
+    const icon = findShelfIcon(); if (!icon) return;
+    const i = icon.querySelector('.shelf-icon__favicon') as HTMLElement | null;
+    const c = icon.querySelector('.shelf-icon__circle') as HTMLElement | null;
+    if (i) { i.style.width = scale + '%'; i.style.height = scale + '%'; }
+    if (c) c.style.background = bg;
+  }
+  function persistDebounced() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(async () => {
+      const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
+      bookmarkOverrides[url] = { scale, bg };
+      await storageSet({ bookmarkOverrides });
+    }, 200);
+  }
+  function update() { applyPreview(); applyToShelf(); persistDebounced(); }
+
+  // ── Open from the shelf right-click menu ────────────────────────────────────
+  window.addEventListener('open-containment', async (e: any) => {
+    const detail = e.detail || {};
+    url = detail.url || '';
+    if (!url) return;
+    const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
+    const ov = bookmarkOverrides[url] || {};
+    scale = typeof ov.scale === 'number' ? ov.scale : 85;
+    bg = ov.bg || '#ffffff';
+
+    img.src = detail.favicon || '';
+    labelEl.textContent = detail.label || url;
+    slider.value = scale;
+    scaleVal.textContent = scale + '%';
+    colorIn.value = /^#[0-9a-f]{6}$/i.test(bg) ? bg : '#ffffff';
+    applyPreview();
+
+    card.classList.remove('is-hidden');
+    card.classList.add('expanded');
+  });
+
+  // ── Controls ────────────────────────────────────────────────────────────────
+  slider?.addEventListener('input', () => {
+    scale = clamp(Number(slider.value) || 0, 0, 100);
+    scaleVal.textContent = scale + '%';
+    update();
+  });
+
+  colorIn?.addEventListener('input', () => { bg = colorIn.value; update(); });
+
+  document.getElementById('ct-pick')?.addEventListener('click', async () => {
+    if (!('EyeDropper' in window)) { showSnackbar('Eyedropper not supported in this browser'); return; }
+    try {
+      const result = await new (window as any).EyeDropper().open();
+      bg = result.sRGBHex;
+      colorIn.value = bg;
+      update();
+    } catch { /* user cancelled */ }
+  });
+
+  document.getElementById('ct-reset')?.addEventListener('click', async () => {
+    const { bookmarkOverrides = {} } = await storageGet('bookmarkOverrides') as any;
+    delete bookmarkOverrides[url];
+    await storageSet({ bookmarkOverrides });
+    scale = 85; bg = '#ffffff';
+    slider.value = 85; scaleVal.textContent = '85%'; colorIn.value = '#ffffff';
+    applyPreview();
+    window.dispatchEvent(new CustomEvent('shelf-icons-refresh')); // restore defaults on the shelf
+    showSnackbar('Containment reset');
+  });
+
+  document.getElementById('ct-close')?.addEventListener('click', () => {
+    card.classList.add('is-hidden');
+  });
+
+  // Collapse / expand (no persistence needed for this transient panel)
+  const toggle = document.getElementById('ct-toggle');
+  toggle?.addEventListener('click', () => {
+    const expanded = card.classList.toggle('expanded');
+    toggle.setAttribute('aria-label', expanded ? 'Collapse' : 'Expand');
+  });
+  // Enable transitions after first paint (consistent with the other cards).
+  requestAnimationFrame(() => card.classList.add('anim-ready'));
+</script>
+
+<style is:global>
+  /* Floating panel above the shelf, horizontally centred. */
+  .containment-card {
+    position: fixed;
+    left: 50%;
+    bottom: calc(56px + 16px);
+    transform: translateX(-50%);
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    z-index: 40;                       /* above the shelf (20) */
+  }
+  .containment-card.is-hidden { display: none !important; }
+
+  .ct-content { display: flex; flex-direction: column; gap: 18px; padding: 16px; }
+
+  /* Preview */
+  .ct-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  /* Higher specificity so it wins over the single-class .shelf-icon__circle */
+  .containment-card .ct-preview__circle {
+    width: 64px; height: 64px;
+    box-shadow: var(--shelf-pop-shadow-1);
+  }
+  .ct-preview__label {
+    font: var(--md-sys-typescale-label-large);
+    letter-spacing: var(--md-sys-typescale-label-large-tracking);
+    color: var(--md-sys-color-on-surface-variant);
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* Fields */
+  .ct-field { display: flex; flex-direction: column; gap: 4px; }
+  .ct-field__label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font: var(--md-sys-typescale-body-medium);
+    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    color: var(--md-sys-color-on-surface);
+  }
+  .ct-field__value { color: var(--md-sys-color-primary); font-weight: 500; }
+  .containment-card md-slider { width: 100%; }
+
+  .ct-color-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ct-swatch {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    overflow: hidden; cursor: pointer; position: relative;
+  }
+  .ct-swatch input[type="color"] {
+    position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px);
+    border: none; padding: 0; background: none; cursor: pointer;
+  }
+</style>

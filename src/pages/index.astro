@@ -3,6 +3,7 @@ import CalendarWidget from '../components/CalendarWidget.astro';
 import EmailWidget    from '../components/EmailWidget.astro';
 import Shortcuts      from '../components/Shortcuts.astro';
 import StatusArea     from '../components/StatusArea.astro';
+import ContainmentAdjuster from '../components/ContainmentAdjuster.astro';
 import '../styles/theme.css';
 ---
 <!DOCTYPE html>
@@ -62,6 +63,9 @@ import '../styles/theme.css';
       <StatusArea />
     </div>
   </nav>
+
+  <!-- Floating panel to tune a bookmark icon's containment (opened on demand) -->
+  <ContainmentAdjuster />
 
 </body>
 </html>
