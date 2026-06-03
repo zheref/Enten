@@ -206,7 +206,7 @@
      --shelf-clearance = the `bottom` value that clears the floating shelf top
      by --shelf-gap (height + 2× gap). */
   --shelf-height:    56px;
-  --shelf-gap:       16px;
+  --shelf-gap:       8px;
   --shelf-margin:    16px;   /* horizontal float margin */
   --shelf-clearance: calc(var(--shelf-height) + 2 * var(--shelf-gap));
 
