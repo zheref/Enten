@@ -20,7 +20,7 @@
       </svg>
     </md-icon-button>
 
-    <md-menu id="data-menu" anchor="data-btn" positioning="fixed" y-offset="16"
+    <md-menu id="data-menu" anchor="data-btn" positioning="fixed" y-offset="8"
              anchor-corner="start-start" menu-corner="end-start">
       <md-menu-item id="data-export">
         <div slot="headline">Export Custom Data</div>
@@ -54,7 +54,7 @@
       </svg>
     </md-icon-button>
 
-    <md-menu id="auth-menu" anchor="auth-btn" positioning="fixed" y-offset="16"
+    <md-menu id="auth-menu" anchor="auth-btn" positioning="fixed" y-offset="8"
              anchor-corner="start-start" menu-corner="end-start">
       <!-- Identity row (non-interactive) -->
       <md-menu-item class="account-row" disabled keep-open>
@@ -81,7 +81,7 @@
       <!-- Current-theme glyph is injected by the script -->
     </md-icon-button>
 
-    <md-menu id="theme-menu" anchor="theme-btn" positioning="fixed" y-offset="16"
+    <md-menu id="theme-menu" anchor="theme-btn" positioning="fixed" y-offset="8"
              anchor-corner="start-start" menu-corner="end-start">
       <md-menu-item data-mode="light">
         <div slot="headline">Light</div>
@@ -441,11 +441,11 @@
     --md-menu-container-color: transparent;   /* no shared surface */
     --md-menu-container-elevation: 0;          /* no shared shadow  */
     --md-menu-container-shape: 0;
-    --md-menu-top-space: 12px;                 /* room so group shadows aren't clipped */
-    --md-menu-bottom-space: 12px;
+    /* Default 8px top/bottom space — enough to clear the group's level-1 shadow
+       while keeping the surface close to the shelf (matches the other menus). */
   }
   #data-menu md-menu-item {
-    margin: 0 12px;
+    margin: 0 8px;
     border-radius: 0;                          /* inner/joined edges are square */
     --md-menu-item-container-color: var(--md-sys-color-surface-container-high);
     box-shadow: var(--md-sys-elevation-level1);
@@ -459,9 +459,10 @@
     border-bottom-left-radius: var(--md-sys-shape-corner-large);
     border-bottom-right-radius: var(--md-sys-shape-corner-large);
   }
-  /* Group B — Clear: its own surface, set apart by a gap, fully rounded */
+  /* Group B — Clear: its own surface, set apart by a small gap, fully rounded.
+     4px ≈ the M3 grouped-list spacing between separate groups. */
   #data-menu #data-clear {
-    margin-top: 10px;                          /* the gap between the two groups */
+    margin-top: 4px;
     border-radius: var(--md-sys-shape-corner-large);
   }
 
