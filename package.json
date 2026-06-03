@@ -11,6 +11,7 @@
     "astro": "^4.16.0"
   },
   "dependencies": {
-    "@material/web": "^2.4.1"
+    "@material/web": "^2.4.1",
+    "jszip": "^3.10.1"
   }
 }
