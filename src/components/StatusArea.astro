@@ -389,7 +389,8 @@
     --md-menu-item-leading-icon-color: var(--md-sys-color-error);
   }
   #data-menu .data-clear[data-armed="1"] {
-    background: color-mix(in srgb, var(--md-sys-color-error) 14%, transparent);
+    --md-menu-item-container-color:
+      color-mix(in srgb, var(--md-sys-color-error) 16%, var(--md-sys-color-surface-container-high));
   }
 
   /* Identity row is a disabled md-menu-item; keep its text legible (the
@@ -413,7 +414,7 @@
      We can reshape the items because md-menu-item's internal .list-item / md-item
      use `border-radius: inherit` — so a border-radius on the host cascades to the
      ripple, the selected fill, and the content. */
-  #theme-menu, #auth-menu, #data-menu {
+  #theme-menu, #auth-menu {
     --md-menu-container-shape: var(--md-sys-shape-corner-extra-large); /* 28dp */
     --md-menu-top-space: 8px;
     --md-menu-bottom-space: 8px;
@@ -431,28 +432,36 @@
   #auth-menu  md-menu-item:last-of-type  { margin-bottom: 4px; }
 
   /* ── M3 Expressive "grouped" menu ──────────────────────────────────────────
-     Instead of a divider, related items form a shape-joined cluster (large
-     outer corners, small inner corners, hairline gap) and separate groups are
-     set apart by extra space. Here: Export + Import = group A; Clear = group B. */
-  #data-menu md-menu-item {
-    margin: 0 8px;
-    border-radius: var(--md-sys-shape-corner-extra-small); /* 4dp — inner/joined edge */
+     Each group is its OWN menu surface, not pills inside one shared container.
+     We drop the menu's container background + shadow, then give every group its
+     own surface tone, rounded shape and elevation. Items within a group merge
+     into a single rounded surface (shared corners); groups are split by a gap
+     that shows the wallpaper through. Here: Export + Import = group A; Clear = B. */
+  #data-menu {
+    --md-menu-container-color: transparent;   /* no shared surface */
+    --md-menu-container-elevation: 0;          /* no shared shadow  */
+    --md-menu-container-shape: 0;
+    --md-menu-top-space: 12px;                 /* room so group shadows aren't clipped */
+    --md-menu-bottom-space: 12px;
   }
-  /* Group A — Export (top of group) → Import (bottom of group) */
+  #data-menu md-menu-item {
+    margin: 0 12px;
+    border-radius: 0;                          /* inner/joined edges are square */
+    --md-menu-item-container-color: var(--md-sys-color-surface-container-high);
+    box-shadow: var(--md-sys-elevation-level1);
+  }
+  /* Group A — Export (top) → Import (bottom): merged into one rounded surface */
   #data-menu #data-export {
-    margin-top: 4px;
     border-top-left-radius: var(--md-sys-shape-corner-large);
     border-top-right-radius: var(--md-sys-shape-corner-large);
   }
   #data-menu #data-import {
-    margin-top: 2px;                                       /* hairline gap within group */
     border-bottom-left-radius: var(--md-sys-shape-corner-large);
     border-bottom-right-radius: var(--md-sys-shape-corner-large);
   }
-  /* Group B — Clear, set apart by a larger gap and fully rounded on its own */
+  /* Group B — Clear: its own surface, set apart by a gap, fully rounded */
   #data-menu #data-clear {
-    margin-top: 10px;
-    margin-bottom: 4px;
+    margin-top: 10px;                          /* the gap between the two groups */
     border-radius: var(--md-sys-shape-corner-large);
   }
 
