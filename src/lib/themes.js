@@ -11,7 +11,7 @@ export const THEMES = [
   { id: 'naruto', label: 'Naruto',   src: '/images/naruto-swift.jpg',
     accent: '#db5d3f', background: '#133552', foreground: '#F1E9DA' },
   { id: 'kylo',   label: 'Kylo Ren', src: '/images/kylo-ren-4k.jpg',
-    accent: '#B72C2A', background: '#2D2F34', foreground: '#C5C4B4' },
+    accent: '#eb4754', background: '#2D2F34', foreground: '#C5C4B4' },
 ];
 
 export const DEFAULT_THEME = 'naruto';
