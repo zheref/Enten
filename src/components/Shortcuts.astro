@@ -51,39 +51,55 @@
   }
 
   const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+  const esc = (s: string) => String(s).replace(/[&<>"]/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+
+  /** Build one shelf icon. scaleDefault/elevDefault apply when unset on the item. */
+  function iconHTML(item: any, scaleDefault = 100, elevDefault = 1): string {
+    const scale = clamp(typeof item.scale === 'number' ? item.scale : scaleDefault, 0, 100);
+    const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
+    const label = esc(item.label ?? item.url ?? '');
+    return `
+      <a class="shelf-icon" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"
+         role="listitem" aria-label="${label}">
+        <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
+          <img class="shelf-icon__favicon" style="width:${scale}%;height:${scale}%"
+               src="${faviconFor(item.url)}" alt="" loading="lazy" />
+        </span>
+        <span class="shelf-icon__tip" role="tooltip">${label}</span>
+      </a>`;
+  }
+
+  /** Read the Chrome Bookmarks Bar (node id "1"); bookmarks only (skip folders). */
+  async function getBookmarksBar(): Promise<{ label: string; url: string }[]> {
+    if (typeof chrome === 'undefined' || !chrome?.bookmarks) return [];
+    return new Promise(resolve => {
+      chrome.bookmarks.getChildren('1', (children: any[]) => {
+        if (chrome.runtime.lastError || !children) { resolve([]); return; }
+        resolve(children
+          .filter(n => n.url)
+          .map(n => ({ label: n.title || n.url, url: n.url })));
+      });
+    });
+  }
 
   async function render() {
-    const { shortcuts } = await storageGet('shortcuts') as any;
-    const items = shortcuts ?? DEFAULT_SHORTCUTS;
     const shelf = document.getElementById('shelf-apps');
     if (!shelf) return;
 
-    shelf.innerHTML = items.map((s: any) => {
-      // scale: percent of circle (default 100 = fill + clip). Below 100 shrinks.
-      const scale = clamp(typeof s.scale === 'number' ? s.scale : 100, 0, 100);
-      const elev  = [0, 1, 2, 3].includes(s.elevation) ? s.elevation : 1; // default: 1
-      return `
-        <a
-          class="shelf-icon"
-          href="${s.url}"
-          target="_blank"
-          rel="noopener noreferrer"
-          role="listitem"
-          aria-label="${s.label}"
-        >
-          <span class="shelf-icon__circle elev-${elev}" aria-hidden="true">
-            <img
-              class="shelf-icon__favicon"
-              style="width:${scale}%;height:${scale}%"
-              src="${faviconFor(s.url)}"
-              alt=""
-              loading="lazy"
-            />
-          </span>
-          <span class="shelf-icon__tip" role="tooltip">${s.label}</span>
-        </a>
-      `;
-    }).join('');
+    // 1) Configured shortcuts (storage override → defaults)
+    const { shortcuts } = await storageGet('shortcuts') as any;
+    const items = shortcuts ?? DEFAULT_SHORTCUTS;
+    let html = items.map((s: any) => iconHTML(s)).join('');
+
+    // 2) Separator + Chrome Bookmarks Bar
+    const bookmarks = await getBookmarksBar();
+    if (bookmarks.length) {
+      html += '<span class="shelf-sep" aria-hidden="true"></span>';
+      html += bookmarks.map(b => iconHTML(b, 85, 1)).join('');
+    }
+
+    shelf.innerHTML = html;
   }
 
   render();
@@ -117,6 +133,16 @@
     align-items: center;
     gap: 6px;
     height: 100%;
+  }
+
+  /* Divider between the configured shortcuts and the Chrome bookmarks */
+  .shelf-sep {
+    width: 1px;
+    height: 24px;
+    margin: 0 4px;
+    flex-shrink: 0;
+    background: var(--md-sys-color-outline-variant);
+    border-radius: 1px;
   }
 
   /* ── Shelf icon wrapper — 44dp tap target ───────────────────────── */
