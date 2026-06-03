@@ -84,6 +84,10 @@
   --card-glass-tint: 251, 241, 235;   /* light scrim */
   --card-glass-bg: rgba(var(--card-glass-tint), calc(var(--shelf-opacity) + 0.21));
 
+  /* Shelf glyph colour (status icons, clock, launcher) — darker in LIGHT mode
+     for better contrast on the bar; dark mode keeps its lighter tone below. */
+  --shelf-glyph: var(--md-sys-color-on-surface);
+
   /* Opaque widget-card surface (header when collapsed + body) */
   --card-surface: var(--md-sys-color-surface-container-low);
 
@@ -153,6 +157,9 @@
 
   /* Widget header glass scrim — DARK MODE */
   --card-glass-tint: 26, 28, 30;
+
+  /* Shelf glyphs keep their lighter tone in dark mode */
+  --shelf-glyph: var(--md-sys-color-on-surface-variant);
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
