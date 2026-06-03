@@ -78,10 +78,11 @@
   --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
-  /* Expanded widget-card header glass — the shelf's opacity + 0.21, per scheme.
-     calc() reads the cascaded --shelf-tint/--shelf-opacity, so it auto-adapts to
-     the colour scheme and any shelf-opacity tweak. Change the +0.21 offset. */
-  --card-glass-bg: rgba(var(--shelf-tint), calc(var(--shelf-opacity) + 0.21));
+  /* Expanded widget-card header glass — a scheme-aware scrim (LIGHT here) over
+     the blur, so it stays light in light mode regardless of the theme's (dark)
+     background tint. Opacity follows the shelf's + 0.21. */
+  --card-glass-tint: 251, 241, 235;   /* light scrim */
+  --card-glass-bg: rgba(var(--card-glass-tint), calc(var(--shelf-opacity) + 0.21));
 
   /* Opaque widget-card surface (header when collapsed + body) */
   --card-surface: var(--md-sys-color-surface-container-low);
@@ -149,6 +150,9 @@
 
   /* Opaque widget-card surface (dark uses a higher tonal step) */
   --card-surface: var(--md-sys-color-surface-container-high);
+
+  /* Widget header glass scrim — DARK MODE */
+  --card-glass-tint: 26, 28, 30;
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
