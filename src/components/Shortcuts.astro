@@ -26,7 +26,7 @@
 </div>
 
 <!-- Shared right-click menu for any shelf icon (anchored in JS to the clicked one) -->
-<md-menu id="app-context-menu" positioning="fixed" anchor-corner="start-start" menu-corner="end-start">
+<md-menu id="app-context-menu" positioning="fixed" y-offset="16" anchor-corner="start-start" menu-corner="end-start">
   <md-menu-item id="ctx-newtab">
     <div slot="headline">Open in New Tab</div>
     <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -140,8 +140,12 @@
       e.preventDefault();
       ctxUrl = icon.getAttribute('href') || '';
       menu.anchorElement = icon;
-      menu.open = true;
+      // Hide the tooltip first, then reveal the menu once it has faded out.
+      shelf.classList.add('menu-open');
+      setTimeout(() => { menu.open = true; }, 120);
     });
+    // Let tooltips return once the menu is dismissed.
+    menu.addEventListener('closed', () => shelf.classList.remove('menu-open'));
 
     document.getElementById('ctx-newtab')?.addEventListener('click', () => {
       if (ctxUrl) window.open(ctxUrl, '_blank');
@@ -278,5 +282,13 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
     transition-delay: 200ms;           /* brief delay before revealing */
+  }
+  /* While the right-click menu is open, hide tooltips immediately (no delay)
+     so the tooltip disappears before the menu appears, and returns after. */
+  .shelf-apps.menu-open .shelf-icon__tip {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.7);
+    transition: opacity 100ms ease, transform 100ms ease;
+    transition-delay: 0ms;
   }
 </style>
