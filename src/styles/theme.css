@@ -78,6 +78,11 @@
   --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
+  /* Expanded widget-card header glass — ~33% of the shelf's opacity, per scheme.
+     calc() reads the cascaded --shelf-tint/--shelf-opacity, so it auto-adapts to
+     the colour scheme and any shelf-opacity tweak. Change 0.33 for the ratio. */
+  --card-glass-bg: rgba(var(--shelf-tint), calc(var(--shelf-opacity) * 0.33));
+
   /* Opaque widget-card surface (header when collapsed + body) */
   --card-surface: var(--md-sys-color-surface-container-low);
 
@@ -369,7 +374,7 @@ html, body {
   -webkit-backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
 }
 .widget-card.expanded .widget-card__header {
-  background-color: var(--shelf-bg);              /* shelf-style translucency */
+  background-color: var(--card-glass-bg);         /* ~33% of the shelf opacity */
 }
 .widget-card__icon { color: var(--md-sys-color-primary); display: flex; }
 .widget-card__title {
