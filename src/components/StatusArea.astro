@@ -34,6 +34,7 @@
           <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
         </svg>
       </md-menu-item>
+      <md-divider role="separator"></md-divider>
       <md-menu-item id="data-clear" class="data-clear" keep-open>
         <div slot="headline">Clear Custom Data</div>
         <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -391,6 +392,8 @@
   #data-menu .data-clear[data-armed="1"] {
     background: color-mix(in srgb, var(--md-sys-color-error) 14%, transparent);
   }
+  /* Inset the separator to line up with the Expressive (inset) menu items. */
+  #data-menu md-divider { margin: 4px 12px; }
 
   /* Identity row is a disabled md-menu-item; keep its text legible (the
      default disabled 38% opacity is too faint to read an email address). */
