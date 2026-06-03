@@ -225,19 +225,20 @@ html, body {
 }
 
 /* ── Cursor policy ───────────────────────────────────────────────────────────
-   Desktop-app feel: the default arrow everywhere. The hand (pointer) is
-   reserved for declared affordances only — currently the expand/collapse
-   toggle. Dragging uses the grab/grabbing cursor (set inline by the drag code).
-   Add elements to the EXCEPTIONS list below to opt them back into the hand.    */
+   Desktop-app feel: the default arrow EVERYWHERE — no hand/grab anywhere.
+   Document-level rules (below) cover light-DOM elements; component shadow-DOM
+   internals (which hardcode cursor:pointer) are reset by src/lib/cursor-fix.js. */
 :where(
   a, button,
   md-icon-button, md-filled-button, md-text-button,
-  md-menu-item, md-list-item,
-  .md3-state-layer, .shelf-icon, .clock
+  md-menu-item, md-list-item, md-slider,
+  .md3-state-layer, .shelf-icon, .clock, [data-drag-handle]
 ) { cursor: default; }
 
-/* EXCEPTIONS — these keep the hand pointer */
-.widget-toggle, .widget-toggle * { cursor: pointer; }
+/* ── No text selection on UI labels (so they show the default arrow, not the
+   text I-beam, and aren't selectable). Real inputs stay selectable. */
+body { user-select: none; -webkit-user-select: none; }
+input, textarea, [contenteditable] { user-select: text; -webkit-user-select: text; }
 .md3-state-layer::before {
   content: '';
   position: absolute; inset: 0;

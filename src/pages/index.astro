@@ -119,6 +119,7 @@ import '../styles/theme.css';
   // Register all Material Web Components (defines <md-*> custom elements).
   import '../lib/md-components.ts';
   import { storageGet, storageSet } from '../lib/storage.js';
+  import { installCursorFix } from '../lib/cursor-fix.js';
 
   const SHELF_CLEARANCE = 56 + 16; // shelf height + safety gap
   const CARD_W = 380;
@@ -131,7 +132,7 @@ import '../styles/theme.css';
   function initDrag(el: HTMLElement, key: string) {
     const header = el.querySelector<HTMLElement>('[data-drag-handle]');
     if (!header) return;
-    header.style.cursor = 'grab';
+    // Title bar uses the default cursor (no grab/grabbing).
 
     let dragging = false, startPX = 0, startPY = 0, startLeft = 0, startTop = 0;
 
@@ -147,7 +148,6 @@ import '../styles/theme.css';
       startLeft = el.offsetLeft;
       startTop  = el.offsetTop;
       el.setPointerCapture(e.pointerId);
-      header.style.cursor = 'grabbing';
       el.style.transition = 'none';
       el.style.zIndex = '50';
       e.preventDefault();
@@ -168,7 +168,6 @@ import '../styles/theme.css';
     const onUp = async () => {
       if (!dragging) return;
       dragging = false;
-      header.style.cursor = 'grab';
       el.style.transition = '';
       el.style.zIndex = '';
       const { widgetPositions = {} } = await storageGet('widgetPositions') as any;
@@ -287,6 +286,7 @@ import '../styles/theme.css';
 
   init();
   setupDesktopMenu();
+  installCursorFix();
 </script>
 
 <style>
