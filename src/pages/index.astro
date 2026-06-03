@@ -88,6 +88,9 @@ import '../styles/theme.css';
     let dragging = false, startPX = 0, startPY = 0, startLeft = 0, startTop = 0;
 
     header.addEventListener('pointerdown', (e: PointerEvent) => {
+      // Don't start a drag when pressing an interactive control in the header
+      // (toggle / refresh buttons) — let their click through.
+      if ((e.target as HTMLElement).closest('md-icon-button, button, a')) return;
       dragging = true;
       startPX = e.clientX;
       startPY = e.clientY;
@@ -177,7 +180,9 @@ import '../styles/theme.css';
   .widget-wrapper {
     position: absolute;
     width: 380px;
-    height: 480px;
+    /* Height follows the card so a collapsed card leaves no invisible,
+       click-blocking area below it. */
+    height: auto;
     pointer-events: auto;
     /* initial offscreen — JS sets real position immediately */
     left: -9999px; top: -9999px;

@@ -1,32 +1,43 @@
 ---
 /**
- * EmailWidget — official MD3 components (mirrors CalendarWidget).
- * Uses md-list-item slots: overline (sender), headline (subject),
- * supporting-text (snippet), start (monogram avatar), end (unread dot).
- * Header is the drag handle.
+ * EmailWidget — collapsible MD3 elevated card (mirrors CalendarWidget).
+ * Shared card chrome/animation lives in the global .widget-card layer.
  */
 ---
 
-<md-elevated-card class="md3-card">
+<md-elevated-card class="widget-card expanded" data-widget="email">
+  <div class="widget-card__clip">
 
-  <div class="card-header" data-drag-handle>
-    <span class="card-header__icon" aria-hidden="true">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-      </svg>
-    </span>
-    <span class="card-header__title">Inbox</span>
-    <md-icon-button id="email-refresh" aria-label="Refresh inbox">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-      </svg>
-    </md-icon-button>
+    <div class="widget-card__header" data-drag-handle>
+      <span class="widget-card__icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+        </svg>
+      </span>
+      <span class="widget-card__title">Inbox</span>
+
+      <md-icon-button class="widget-toggle" id="email-toggle" aria-label="Collapse">
+        <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/>
+        </svg>
+      </md-icon-button>
+
+      <md-icon-button class="widget-refresh" id="email-refresh" aria-label="Refresh inbox">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+      </md-icon-button>
+    </div>
+
+    <div class="widget-card__body">
+      <div class="widget-card__body-inner">
+        <md-list id="email-list" class="md3-list">
+          <div class="placeholder">Loading…</div>
+        </md-list>
+      </div>
+    </div>
+
   </div>
-
-  <md-list id="email-list" class="md3-list">
-    <div class="placeholder">Loading…</div>
-  </md-list>
-
 </md-elevated-card>
 
 <script>
@@ -40,7 +51,6 @@
     return (m ? m[1] : from).trim();
   }
   const initial = (from: string) => displayName(from).charAt(0).toUpperCase() || '?';
-
   function esc(s: string) {
     return String(s).replace(/[&<>"]/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
@@ -115,37 +125,24 @@
 
   load();
   document.getElementById('email-refresh')?.addEventListener('click', () => load(true));
+
+  // ── Expand / collapse ──────────────────────────────────────────────────────
+  const card   = document.querySelector('.widget-card[data-widget="email"]') as HTMLElement;
+  const toggle = document.getElementById('email-toggle');
+
+  async function initCollapse() {
+    const { widgetCollapsed = {} } = await storageGet('widgetCollapsed') as any;
+    const collapsed = !!widgetCollapsed.email;
+    card.classList.toggle('expanded', !collapsed);
+    toggle?.setAttribute('aria-label', collapsed ? 'Expand' : 'Collapse');
+    requestAnimationFrame(() => card.classList.add('anim-ready'));
+  }
+  toggle?.addEventListener('click', async () => {
+    const expanded = card.classList.toggle('expanded');
+    toggle.setAttribute('aria-label', expanded ? 'Collapse' : 'Expand');
+    const { widgetCollapsed = {} } = await storageGet('widgetCollapsed') as any;
+    widgetCollapsed.email = !expanded;
+    await storageSet({ widgetCollapsed });
+  });
+  initCollapse();
 </script>
-
-<style>
-  .md3-card {
-    display: flex; flex-direction: column;
-    height: 100%;
-    /* No overflow:hidden — it would clip md-elevated-card's elevation shadow.
-       Shape/elevation/colour kept at canonical md-elevated-card defaults
-       (corner medium 12dp, elevation level 1, surface-container-low). */
-  }
-  .card-header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 8px 8px 16px;
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
-    user-select: none; flex-shrink: 0;
-  }
-  .card-header__icon { color: var(--md-sys-color-primary); display: flex; }
-  .card-header__title {
-    flex: 1;
-    font: var(--md-sys-typescale-title-medium);
-    letter-spacing: var(--md-sys-typescale-title-medium-tracking);
-    color: var(--md-sys-color-on-surface);
-  }
-  #email-refresh { color: var(--md-sys-color-on-surface-variant); }
-
-  /* MD3 List — canonical 8dp block padding (md-list default); transparent. */
-  .md3-list {
-    flex: 1; overflow-y: auto;
-    --md-list-container-color: transparent;
-  }
-
-  /* Unread subject highlight (md-list-item headline slot) */
-  .unread { --md-list-item-label-text-color: var(--md-sys-color-primary); }
-</style>

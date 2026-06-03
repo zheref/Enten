@@ -78,6 +78,9 @@
   --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
+  /* Opaque widget-card surface (header when collapsed + body) */
+  --card-surface: var(--md-sys-color-surface-container-low);
+
   /* Wallpaper overlay (scrim strength over the image) */
   --wallpaper-scrim: rgba(255, 248, 245, 0.08);
 }
@@ -137,6 +140,9 @@
   --shelf-blur:    24px;            /* ITERATE */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
   --wallpaper-scrim: rgba(0, 0, 0, 0.22);
+
+  /* Opaque widget-card surface (dark uses a higher tonal step) */
+  --card-surface: var(--md-sys-color-surface-container-high);
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
@@ -300,4 +306,98 @@ html, body {
   font: var(--md-sys-typescale-body-medium);
   letter-spacing: var(--md-sys-typescale-body-medium-tracking);
   color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WIDGET CARD — collapsible (shared by Calendar & Email widgets)
+
+   Structure:
+     md-elevated-card.widget-card   → constant elevation shadow + 12dp shape;
+                                       its own container colour is transparent.
+       .widget-card__clip           → overflow:hidden, rounds header/body corners.
+                                       (Clips CONTENT only — the card's md-elevation
+                                        shadow lives in the card's shadow DOM, a
+                                        sibling of the slot, so it's never clipped.)
+         .widget-card__header       → drag handle + title + toggle + refresh.
+                                       Always-on backdrop blur; background cross-
+                                       fades opaque(collapsed) ↔ translucent(expanded).
+         .widget-card__body         → grid-rows 0fr↔1fr roll-down of the content.
+           .widget-card__body-inner → overflow:hidden clip for the roll.
+
+   Elevation never changes (constant level 1, transparent container, no overflow
+   toggling on the host) so the shadow is stable during animation.            */
+
+.widget-card {
+  display: flex; flex-direction: column;
+  height: auto;                                   /* follows content as it rolls */
+  --md-elevated-card-container-color: transparent;/* surface comes from header/body */
+}
+
+.widget-card__clip {
+  display: flex; flex-direction: column;
+  /* Match the md-elevated-card shape (canon medium 12dp). Set explicitly
+     because the card applies its shape to an inner element, not :host, so
+     `inherit` here would resolve to 0. */
+  border-radius: var(--md-sys-shape-corner-medium);
+  overflow: hidden;                               /* round header top + body bottom */
+  min-height: 0;
+}
+
+/* Header / drag handle — glass that adapts to the colour scheme */
+.widget-card__header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 8px 8px 16px;
+  flex-shrink: 0;
+  user-select: none;
+  background-color: var(--card-surface);          /* opaque by default (collapsed) */
+  backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
+  -webkit-backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
+}
+.widget-card.expanded .widget-card__header {
+  background-color: var(--shelf-bg);              /* shelf-style translucency */
+}
+.widget-card__icon { color: var(--md-sys-color-primary); display: flex; }
+.widget-card__title {
+  flex: 1;
+  font: var(--md-sys-typescale-title-medium);
+  letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+  color: var(--md-sys-color-on-surface);
+}
+.widget-card__header md-icon-button { color: var(--md-sys-color-on-surface-variant); }
+.widget-toggle .chevron { display: block; }
+/* Chevron points down when collapsed (rotated), up when expanded */
+.widget-card:not(.expanded) .widget-toggle .chevron { transform: rotate(180deg); }
+
+/* Body roll-down */
+.widget-card__body {
+  display: grid;
+  grid-template-rows: 1fr;                        /* expanded */
+  background-color: var(--card-surface);          /* opaque content surface */
+}
+.widget-card:not(.expanded) .widget-card__body { grid-template-rows: 0fr; }
+.widget-card__body-inner { overflow: hidden; min-height: 0; }
+
+.widget-card .md3-list {
+  max-height: 56vh;
+  overflow-y: auto;
+  --md-list-container-color: transparent;
+}
+
+/* Unread email subject highlight (md-list-item is injected at runtime → global) */
+md-list-item.unread { --md-list-item-label-text-color: var(--md-sys-color-primary); }
+
+/* ── Transitions — only after .anim-ready (so the initial state doesn't animate)
+   Expand: body rolls down first; header background changes AFTER (delay).
+   Collapse: header background reverts immediately, body rolls up.            */
+.widget-card.anim-ready .widget-card__body {
+  transition: grid-template-rows 320ms cubic-bezier(0.2, 0, 0, 1);
+}
+.widget-card.anim-ready .widget-card__header {
+  transition: background-color 220ms ease;
+}
+.widget-card.anim-ready.expanded .widget-card__header {
+  transition-delay: 320ms;                        /* wait for the roll-down */
+}
+.widget-card.anim-ready .widget-toggle .chevron {
+  transition: transform 240ms cubic-bezier(0.2, 0, 0, 1);
 }
