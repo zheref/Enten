@@ -381,10 +381,26 @@ import '../styles/theme.css';
        (--shelf-opacity / --shelf-blur), per light & dark scheme. */
     backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--shelf-blur)) saturate(1.8);
-    /* Full outline + level-1 shadow define the floating piece (both adapt to
-       the colour scheme / stay constant across themes). */
-    border: 1px solid var(--md-sys-color-outline-variant);
+    /* Outline is a gradient "glass rim" drawn by ::after (see below); the
+       transparent border just reserves the 1px so there's no layout shift. */
+    border: 1px solid transparent;
     box-shadow: var(--md-sys-elevation-level1);
+  }
+  /* Reflective glass rim: a gradient masked down to the 1px border ring so it
+     follows the rounded corners. The gradient (--shelf-edge) is reflective in
+     light mode, flat in dark. */
+  .shelf::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--shelf-edge);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
   }
 
   .shelf__zone {

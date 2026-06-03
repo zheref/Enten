@@ -78,6 +78,17 @@
   --shelf-blur:    24px;            /* ITERATE: Gaussian blur radius */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
 
+  /* Shelf edge — LIGHT MODE: a reflective glass rim. The gradient varies along
+     the line (bright glints near the corners, faint in the middle) to read like
+     light catching the edge of a piece of glass. */
+  --shelf-edge: linear-gradient(120deg,
+    rgba(255,255,255,0.90) 0%,
+    rgba(255,255,255,0.18) 18%,
+    rgba(255,255,255,0.55) 38%,
+    rgba(255,255,255,0.10) 55%,
+    rgba(255,255,255,0.60) 78%,
+    rgba(255,255,255,0.90) 100%);
+
   /* Expanded widget-card header glass — a scheme-aware scrim (LIGHT here) over
      the blur, so it stays light in light mode regardless of the theme's (dark)
      background tint. Opacity follows the shelf's + 0.21. */
@@ -151,6 +162,9 @@
   --shelf-blur:    24px;            /* ITERATE */
   --shelf-bg: rgba(var(--shelf-tint), var(--shelf-opacity));
   --wallpaper-scrim: rgba(0, 0, 0, 0.22);
+
+  /* Shelf edge — DARK MODE: flat outline (unchanged look) */
+  --shelf-edge: linear-gradient(var(--md-sys-color-outline-variant), var(--md-sys-color-outline-variant));
 
   /* Opaque widget-card surface (dark uses a higher tonal step) */
   --card-surface: var(--md-sys-color-surface-container-high);
