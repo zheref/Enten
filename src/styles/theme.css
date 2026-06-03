@@ -356,8 +356,9 @@ md-menu md-menu-item:last-of-type  { margin-bottom: 4px; }
   min-height: 48px;
   display: flex; align-items: center;
   padding: 14px 16px;
-  background: var(--md-sys-color-inverse-surface);
-  color: var(--md-sys-color-inverse-on-surface);
+  /* Match the current scheme (like the tooltips), not MD3's inverse-surface */
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
   border-radius: var(--md-sys-shape-corner-extra-large); /* same as the tooltips */
   box-shadow: var(--md-sys-elevation-level3);
   font: var(--md-sys-typescale-body-medium);
