@@ -84,7 +84,7 @@ import '../styles/theme.css';
           <path d="M10 17l5-5-5-5v10z"/>
         </svg>
       </md-menu-item>
-      <md-menu slot="menu" anchor-corner="start-end" menu-corner="start-start">
+      <md-menu slot="menu" positioning="fixed">
         <md-menu-item data-side="top"><div slot="headline">Top</div>
           <svg slot="start" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
         </md-menu-item>
@@ -244,13 +244,15 @@ import '../styles/theme.css';
     if (!wallpaper || !anchor || !menu) return;
 
     function openAt(x: number, y: number) {
+      // Close first so a repeated secondary-click re-opens at the new spot
+      // (md-menu's outside-close only listens for left clicks, not contextmenu).
+      menu.open = false;
       anchor.style.left = x + 'px';
       anchor.style.top  = y + 'px';
       menu.anchorElement = anchor;
-      menu.open = true;
+      requestAnimationFrame(() => { menu.open = true; });
     }
-    // Tap (and right-click) on blank wallpaper space reveals the menu.
-    wallpaper.addEventListener('click', (e: MouseEvent) => openAt(e.clientX, e.clientY));
+    // Secondary (right) click on blank wallpaper space reveals the menu.
     wallpaper.addEventListener('contextmenu', (e: MouseEvent) => {
       e.preventDefault();
       openAt(e.clientX, e.clientY);
