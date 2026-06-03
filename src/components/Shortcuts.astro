@@ -49,6 +49,7 @@
 
 <script>
   import { storageGet } from '../lib/storage.js';
+  import { showSnackbar } from '../lib/snackbar.js';
 
   // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
   const DEFAULT_SHORTCUTS = [
@@ -155,8 +156,13 @@
     });
     document.getElementById('ctx-copy')?.addEventListener('click', async () => {
       if (!ctxUrl) return;
-      try { await navigator.clipboard.writeText(ctxUrl); }
-      catch (err) { console.error('[SergioSwift] Copy link failed', err); }
+      try {
+        await navigator.clipboard.writeText(ctxUrl);
+        showSnackbar('Link copied to clipboard');
+      } catch (err) {
+        showSnackbar('Couldn’t copy link');
+        console.error('[SergioSwift] Copy link failed', err);
+      }
     });
   }
 
