@@ -340,9 +340,21 @@ md-menu {
 md-menu md-menu-item {
   border-radius: var(--md-sys-shape-corner-large);
   margin: 2px 8px;
+  /* Compact density: shorter rows, tighter padding, smaller label */
+  --md-menu-item-one-line-container-height: 40px;
+  --md-menu-item-two-line-container-height: 56px;
+  --md-menu-item-top-space: 6px;
+  --md-menu-item-bottom-space: 6px;
+  --md-menu-item-leading-space: 12px;
+  --md-menu-item-trailing-space: 12px;
+  --md-menu-item-label-text-size: var(--md-sys-typescale-body-medium-size, 0.875rem);
+  --md-menu-item-label-text-line-height: var(--md-sys-typescale-body-medium-line-height, 1.25rem);
 }
 md-menu md-menu-item:first-of-type { margin-top: 4px; }
 md-menu md-menu-item:last-of-type  { margin-bottom: 4px; }
+/* Shrink the slotted leading/trailing symbols to match the compact rows */
+md-menu md-menu-item [slot="start"],
+md-menu md-menu-item [slot="end"] { width: 20px; height: 20px; }
 
 /* ── MD3 Snackbar — transient message, bottom-right above the shelf ──────────
    Created at runtime by src/lib/snackbar.js (appended to <body>), so styled
