@@ -207,7 +207,7 @@
       ).then(r => r.json());
       await storageSet({ userEmail: profile.email });
       location.reload();
-    } catch (e) { console.error('[SergioSwift] Auth error', e); }
+    } catch (e) { console.error('[Enten] Auth error', e); }
   }
 
   // Open the account menu centred on the person button; keep its state ON.

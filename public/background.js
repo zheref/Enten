@@ -14,10 +14,10 @@
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === 'install') {
-    console.log('[SergioSwift] Extension installed.');
+    console.log('[Enten] Extension installed.');
   }
   if (reason === 'update') {
-    console.log('[SergioSwift] Extension updated.');
+    console.log('[Enten] Extension updated.');
   }
 });
 

@@ -1,4 +1,4 @@
-# SergioSwift — Chrome Theme & Dashboard
+# Enten — Chrome Theme & Dashboard
 
 A Chrome project in two parts — a **browser theme** that styles the frame and
 toolbar, and a **dashboard extension** that replaces the New Tab page with a
@@ -73,7 +73,7 @@ Full key reference: [`theme.config.md`](theme.config.md) · Palette notes: [`pal
 ### Publish (Chrome Web Store — Category: Themes)
 
 ```bash
-zip -r sergioswift-theme.zip . \
+zip -r enten-theme.zip . \
   --exclude ".git/*" --exclude ".DS_Store" \
   --exclude "*.pem"  --exclude "*.crx"   \
   --exclude "src/*"  --exclude "public/*" \
@@ -89,7 +89,7 @@ Upload to the [Developer Dashboard](https://chrome.google.com/webstore/devconsol
 
 Replaces the **New Tab page** with a personal dashboard: upcoming calendar
 events, recent Gmail messages, and a customisable app-shortcut grid, all
-styled with the SergioSwift palette.
+styled with the Enten palette.
 
 Because Chrome ignores `chrome_url_overrides` in any manifest that also
 contains `"theme"`, the dashboard lives in its own separate manifest
@@ -117,7 +117,7 @@ src/
 ├── lib/
 │   ├── google.js                ← chrome.identity + Calendar + Gmail helpers
 │   └── storage.js               ← chrome.storage.local wrapper
-└── styles/theme.css             ← SergioSwift CSS variables
+└── styles/theme.css             ← Enten CSS variables
 
 public/                          ← Copied verbatim to dist/ by Astro
 ├── manifest.json                ← Dashboard extension manifest
@@ -181,10 +181,10 @@ is previewable in any browser without the extension context.
 
 ```bash
 npm run build
-cd dist && zip -r ../sergioswift-dashboard.zip . && cd ..
+cd dist && zip -r ../enten-dashboard.zip . && cd ..
 ```
 
-Upload `sergioswift-dashboard.zip` → Category **Extensions** (not Themes).
+Upload `enten-dashboard.zip` → Category **Extensions** (not Themes).
 
 > **Gmail scope note** — `gmail.readonly` requires Google's OAuth verification
 > for public listings. Calendar and profile scopes do not. See

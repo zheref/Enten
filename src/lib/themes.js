@@ -71,9 +71,9 @@ export function buildThemeManifest(theme) {
   const [fh, fs, fl] = rgbToHsl(F);
   return {
     manifest_version: 3,
-    name: theme.label,
+    name: `Enten - ${theme.label} Theme`,
     version: '1.0.0',
-    description: `${theme.label} — a SergioSwift theme. Accent ${theme.accent}, background ${theme.background}, foreground ${theme.foreground}.`,
+    description: `${theme.label} — an Enten theme. Accent ${theme.accent}, background ${theme.background}, foreground ${theme.foreground}.`,
     theme: {
       images: { theme_ntp_background: 'images/wallpaper.jpg' },
       colors: {

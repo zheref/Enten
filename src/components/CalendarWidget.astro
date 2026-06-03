@@ -110,7 +110,7 @@
       ).then(r => r.json());
       await storageSet({ userEmail: profile.email });
       location.reload();
-    } catch (e) { console.error('[SergioSwift] Auth', e); }
+    } catch (e) { console.error('[Enten] Auth', e); }
   }
 
   async function load(force = false) {

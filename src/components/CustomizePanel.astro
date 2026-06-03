@@ -102,12 +102,12 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sergioswift-${theme.id}-theme.zip`;
+      a.download = `enten-${theme.id}-theme.zip`;
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
       showSnackbar(`${theme.label} theme downloaded`);
     } catch (err) {
-      console.error('[SergioSwift] Theme zip failed', err);
+      console.error('[Enten] Theme zip failed', err);
       showSnackbar('Couldn’t generate the theme');
     }
   });

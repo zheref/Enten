@@ -1,4 +1,4 @@
-# SergioSwift Dashboard — Architecture & Setup Guide
+# Enten Dashboard — Architecture & Setup Guide
 
 This document covers everything you need to go from this scaffold to a
 fully working personal dashboard — and what to expect at each step.
@@ -36,7 +36,7 @@ The UI is built on **[@material/web](https://github.com/material-components/mate
 behaviour — notably `md-elevation` (shadow **plus** surface-tint, auto-tonal in
 dark mode), ripples, and typography.
 
-They read our `--md-sys-*` tokens from `theme.css`, so the SergioSwift palette
+They read our `--md-sys-*` tokens from `theme.css`, so the Enten palette
 and light/dark switching apply to them automatically. All `md-*` elements are
 registered once via `src/lib/md-components.ts`, imported from the page script.
 
@@ -52,7 +52,7 @@ registered once via `src/lib/md-components.ts`, imported from the page script.
 | Feature | Works? | Notes |
 |---------|--------|-------|
 | Astro static NTP | ✅ | Static HTML/CSS/JS — perfect for Chrome extension pages |
-| Custom CSS design system | ✅ | Full CSS control; SergioSwift tokens in `theme.css` |
+| Custom CSS design system | ✅ | Full CSS control; Enten tokens in `theme.css` |
 | App shortcuts (persisted) | ✅ | Stored in `chrome.storage.local` |
 | Google Calendar | ✅ | `chrome.identity` + Calendar API; no popup for signed-in Chrome user |
 | Gmail inbox | ✅ | Same; note Gmail scope needs Google verification for public distribution |
@@ -91,7 +91,7 @@ npm install
 ## Step 2 — Set up a Google Cloud project
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com).
-2. Create a new project (e.g. "SergioSwift").
+2. Create a new project (e.g. "Enten").
 3. **APIs & Services → Enable APIs:**
    - Google Calendar API
    - Gmail API
@@ -255,10 +255,10 @@ For **public Web Store listing** with Gmail scope:
 
 ```bash
 npm run build
-cd dist && zip -r ../sergioswift-v2.zip . && cd ..
+cd dist && zip -r ../enten-v2.zip . && cd ..
 ```
 
-Upload `sergioswift-v2.zip` to the
+Upload `enten-v2.zip` to the
 [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
 
 ---
