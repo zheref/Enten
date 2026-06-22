@@ -228,10 +228,14 @@
     const fr = fan ? fan.getBoundingClientRect() : r;
     const GAP = 14;           // margin between the fan and the submenu
     const EST_MENU_W = 240;   // rough width estimate to pick a side
-    // Prefer the right: only fall back to the left when the right genuinely
-    // can't fit AND the left has more room.
+    // Prefer the right, but only when the menu + its margin actually FIT there.
+    // Forcing it right without room makes md-menu clamp it back against the fan
+    // (no margin), so fall back to the left when the right can't fit; if neither
+    // fits, take whichever side has more room.
+    const need = EST_MENU_W + GAP;
     const roomRight = window.innerWidth - fr.right;
-    const toRight = roomRight >= EST_MENU_W || roomRight >= fr.left;
+    const roomLeft  = fr.left;
+    const toRight = roomRight >= need || (roomLeft < need && roomRight >= roomLeft);
     if (toRight) {            // menu's top-left past the fan's right edge
       menu.anchorCorner = 'start-end';
       menu.menuCorner = 'start-start';
