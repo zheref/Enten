@@ -226,16 +226,20 @@
     const r = row.getBoundingClientRect();
     const fan = row.closest('.shelf-fan') as HTMLElement | null;
     const fr = fan ? fan.getBoundingClientRect() : r;
+    const GAP = 14;           // margin between the fan and the submenu
     const EST_MENU_W = 240;   // rough width estimate to pick a side
-    const toRight = (window.innerWidth - fr.right) >= EST_MENU_W || fr.left < EST_MENU_W;
-    if (toRight) {            // menu's top-left just past the fan's right edge
+    // Prefer the right: only fall back to the left when the right genuinely
+    // can't fit AND the left has more room.
+    const roomRight = window.innerWidth - fr.right;
+    const toRight = roomRight >= EST_MENU_W || roomRight >= fr.left;
+    if (toRight) {            // menu's top-left past the fan's right edge
       menu.anchorCorner = 'start-end';
       menu.menuCorner = 'start-start';
-      menu.xOffset = Math.round(fr.right - r.right + 8);
-    } else {                  // menu's top-right just past the fan's left edge
+      menu.xOffset = Math.round(fr.right - r.right + GAP);
+    } else {                  // menu's top-right past the fan's left edge
       menu.anchorCorner = 'start-start';
       menu.menuCorner = 'start-end';
-      menu.xOffset = Math.round(fr.left - r.left - 8);
+      menu.xOffset = Math.round(fr.left - r.left - GAP);
     }
     menu.yOffset = 0;
     menu.anchorElement = row;
