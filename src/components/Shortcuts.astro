@@ -102,7 +102,6 @@
   import { bindFan, closeFan, isFanOpen, installFanDismissers } from '../lib/shelf-fan.js';
 
   const GAP = 6;        // matches the flex `gap` between shelf items
-  const SAFETY = 12;    // breathing room so we never quite touch the side zones
 
   // The resolved model is cached so the context menu / fans can look items up.
   let model: { items: any[]; appOverrides: any } = { items: [], appOverrides: {} };
@@ -136,13 +135,17 @@
     layout();
   }
 
-  // Measure the bar and its two side zones (launcher · status area).
-  function measureZones() {
-    const shelf = document.querySelector('.shelf') as HTMLElement | null;
-    const start = document.querySelector('.shelf__zone--start') as HTMLElement | null;
-    const end   = document.querySelector('.shelf__zone--end') as HTMLElement | null;
-    const innerW = shelf ? shelf.clientWidth - 24 : 0;   // shelf padding is 0 12px
-    return { innerW, lead: start?.scrollWidth || 0, trail: end?.scrollWidth || 0 };
+  const EDGE_GAP = 8;   // smallest gap the cluster keeps from launcher / status
+
+  // The icons live in the shelf's centre grid track, which is exactly the gap
+  // between the launcher (auto) and the status area (auto) — its width is the
+  // total room available and is stable regardless of how many icons we show
+  // (minmax(0,1fr) stops the icons from stretching it). The cluster is centred
+  // in that gap by CSS, so balanced gaps fall out for free when items fit, and
+  // it fills the gap edge-to-edge (max items, no wasted space) when they don't.
+  function budgetWidth(): number {
+    const zone = document.querySelector('.shelf__zone--center') as HTMLElement | null;
+    return zone ? zone.clientWidth - 2 * EDGE_GAP : Infinity;
   }
 
   // ── Layout: measure, decide overflow (trailing-first), populate the fan ─────
@@ -161,15 +164,9 @@
     if (innerSep) innerSep.hidden = false;
     trigOverflow.hidden = false;
 
-    // The grid (1fr auto 1fr) centres the cluster in the WHOLE bar, but the
-    // launcher and the status area aren't the same width — so the visual gap
-    // ends up large on the left and tiny on the right. Centre the cluster in
-    // the space BETWEEN the two side zones instead (equal gap on each side) by
-    // nudging it by half their width difference, and budget against that gap.
-    const apps = $('shelf-apps') as HTMLElement;
-    const { innerW, lead, trail } = measureZones();
-    apps.style.transform = innerW ? `translateX(${Math.round((lead - trail) / 2)}px)` : '';
-    const budget = innerW ? innerW - lead - trail - 2 * SAFETY : Infinity;
+    // Fit the cluster to the gap between the launcher and the status area; CSS
+    // keeps it centred in that gap (see budgetWidth).
+    const budget = budgetWidth();
 
     const archivedShown = !trigArchived.hidden;
     const itemW     = icons.map(el => el.offsetWidth + GAP);
