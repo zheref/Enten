@@ -136,17 +136,13 @@
     layout();
   }
 
-  // The center zone is the auto track between two equal 1fr side zones, so the
-  // room the apps may take without crowding the launcher / status area is
-  //   innerWidth − 2 × max(leftContent, rightContent).
-  function availableCenterWidth(): number {
+  // Measure the bar and its two side zones (launcher · status area).
+  function measureZones() {
     const shelf = document.querySelector('.shelf') as HTMLElement | null;
     const start = document.querySelector('.shelf__zone--start') as HTMLElement | null;
     const end   = document.querySelector('.shelf__zone--end') as HTMLElement | null;
-    if (!shelf) return Infinity;
-    const innerW = shelf.clientWidth - 24;   // shelf padding is 0 12px
-    const side = Math.max(start?.scrollWidth || 0, end?.scrollWidth || 0);
-    return innerW - 2 * side - SAFETY;
+    const innerW = shelf ? shelf.clientWidth - 24 : 0;   // shelf padding is 0 12px
+    return { innerW, lead: start?.scrollWidth || 0, trail: end?.scrollWidth || 0 };
   }
 
   // ── Layout: measure, decide overflow (trailing-first), populate the fan ─────
@@ -165,8 +161,17 @@
     if (innerSep) innerSep.hidden = false;
     trigOverflow.hidden = false;
 
+    // The grid (1fr auto 1fr) centres the cluster in the WHOLE bar, but the
+    // launcher and the status area aren't the same width — so the visual gap
+    // ends up large on the left and tiny on the right. Centre the cluster in
+    // the space BETWEEN the two side zones instead (equal gap on each side) by
+    // nudging it by half their width difference, and budget against that gap.
+    const apps = $('shelf-apps') as HTMLElement;
+    const { innerW, lead, trail } = measureZones();
+    apps.style.transform = innerW ? `translateX(${Math.round((lead - trail) / 2)}px)` : '';
+    const budget = innerW ? innerW - lead - trail - 2 * SAFETY : Infinity;
+
     const archivedShown = !trigArchived.hidden;
-    const budget    = availableCenterWidth();
     const itemW     = icons.map(el => el.offsetWidth + GAP);
     const totalItems = itemW.reduce((a, b) => a + b, 0);
     const innerSepW = innerSep ? innerSep.offsetWidth + GAP : 0;
