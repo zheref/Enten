@@ -143,8 +143,9 @@
 
   const effectiveIcon = () => chosenIcon || defaultIcon;
 
+  // Match the inline shelf icon OR a fan row (Archived / Overflow) for this URL.
   function findShelfIcon(): HTMLElement | null {
-    return Array.from(document.querySelectorAll('.shelf-icon'))
+    return Array.from(document.querySelectorAll('.shelf-icon, .shelf-row-item'))
       .find(a => (a as HTMLElement).dataset.url === url) as HTMLElement | null;
   }
 
