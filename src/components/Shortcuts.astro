@@ -219,6 +219,32 @@
   let ctxUrl = '', ctxKind = 'shortcut', ctxLabel = '', ctxScale = 85, ctxIcon = '';
   let ctxArchived = false;
 
+  // Open the context menu as a submenu next to a fan row: just outside the fan
+  // (to the right if there's room, else to the left), top-aligned with the row.
+  // Anchoring past the fan's edge keeps it clear of the fan at any row width.
+  function openSubMenuBeside(menu: any, row: HTMLElement) {
+    const r = row.getBoundingClientRect();
+    const fan = row.closest('.shelf-fan') as HTMLElement | null;
+    const fr = fan ? fan.getBoundingClientRect() : r;
+    const EST_MENU_W = 240;   // rough width estimate to pick a side
+    const toRight = (window.innerWidth - fr.right) >= EST_MENU_W || fr.left < EST_MENU_W;
+    if (toRight) {            // menu's top-left just past the fan's right edge
+      menu.anchorCorner = 'start-end';
+      menu.menuCorner = 'start-start';
+      menu.xOffset = Math.round(fr.right - r.right + 8);
+    } else {                  // menu's top-right just past the fan's left edge
+      menu.anchorCorner = 'start-start';
+      menu.menuCorner = 'start-end';
+      menu.xOffset = Math.round(fr.left - r.left - 8);
+    }
+    menu.yOffset = 0;
+    menu.anchorElement = row;
+    // If it's already open (right-clicking row → row), re-open so it moves to
+    // the new anchor instead of staying put.
+    if (menu.open) { menu.open = false; requestAnimationFrame(() => { menu.open = true; }); }
+    else menu.open = true;
+  }
+
   function setupContextMenu() {
     const menu = $('app-context-menu') as any;
     const apps = $('shelf-apps');
@@ -228,7 +254,10 @@
       const el = (e.target as HTMLElement).closest('.shelf-icon, .shelf-row-item') as HTMLElement | null;
       if (!el) return;
       e.preventDefault();
-      closeFan();   // a fan and the menu shouldn't be open together
+      const inFan = el.classList.contains('shelf-row-item');
+      // For a fan row, leave the fan open and present the menu as a submenu
+      // beside the row. Only close a fan when acting on an inline shelf icon.
+      if (!inFan) closeFan();
 
       ctxUrl   = el.getAttribute('href') || '';
       ctxKind  = el.dataset.kind || 'shortcut';
@@ -244,13 +273,20 @@
       ($('ctx-archive') as HTMLElement).style.display = ctxArchived ? 'none' : '';
       ($('ctx-unarchive') as HTMLElement).style.display = ctxArchived ? '' : 'none';
 
-      // Anchor the menu over the icon, or over a fan row's circle.
-      const anchor = el.classList.contains('shelf-row-item')
-        ? (el.querySelector('.shelf-icon__circle') as HTMLElement) : el;
-      apps.querySelectorAll('.shelf-icon.menu-active').forEach(x => x.classList.remove('menu-active'));
-      if (el.classList.contains('shelf-icon')) el.classList.add('menu-active');
-      apps.classList.add('menu-open');
-      setTimeout(() => openCenteredMenu(menu, anchor), 120);
+      if (inFan) {
+        // Submenu-style: open to the side of the row (whichever side has room),
+        // top-aligned with it, without disturbing the open fan.
+        openSubMenuBeside(menu, el);
+      } else {
+        apps.querySelectorAll('.shelf-icon.menu-active').forEach(x => x.classList.remove('menu-active'));
+        el.classList.add('menu-active');
+        apps.classList.add('menu-open');
+        // Restore the default "above, centred" placement for inline icons.
+        menu.anchorCorner = 'start-start';
+        menu.menuCorner = 'end-start';
+        menu.yOffset = 16;
+        setTimeout(() => openCenteredMenu(menu, el), 120);
+      }
     });
 
     menu.addEventListener('closed', () => {
