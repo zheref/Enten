@@ -245,8 +245,11 @@
     const fan = row.closest('.shelf-fan') as HTMLElement | null;
     const fr = fan ? fan.getBoundingClientRect() : r;
     const anchor = subMenuAnchor();
+    // Lock the HORIZONTAL placement (that's the margin we control); leave the
+    // vertical free to flip so a row near the shelf opens upward instead of
+    // being squashed against the bottom.
     menu.noHorizontalFlip = true;
-    menu.noVerticalFlip = true;
+    menu.noVerticalFlip = false;
     menu.anchorCorner = 'start-start';
     menu.xOffset = 0;
     menu.yOffset = 0;
@@ -266,9 +269,10 @@
     // Highlight the row the submenu applies to (cleared on the menu's close).
     document.querySelectorAll('.shelf-row-item.menu-active').forEach(x => x.classList.remove('menu-active'));
     row.classList.add('menu-active');
-    // Re-open if already open (right-clicking row → row) so it moves anchor.
-    if (menu.open) { menu.open = false; requestAnimationFrame(() => { menu.open = true; }); }
-    else menu.open = true;
+    // Close-then-open on the next frame so the moved anchor is laid out first
+    // (the desktop menu uses the same trick); works whether or not it was open.
+    menu.open = false;
+    requestAnimationFrame(() => { menu.open = true; });
   }
 
   function setupContextMenu() {
