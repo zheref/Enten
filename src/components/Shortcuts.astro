@@ -222,49 +222,23 @@
   const SUBMENU_GAP = 14;   // margin between the fan and the submenu
 
   // Open the context menu as a submenu beside a fan row. Anchored to the ROW
-  // (so it's top-aligned and always on-screen — anchoring to the tall fan and
-  // pushing down with a big yOffset could land it under the shelf), with an
-  // xOffset that clears the whole fan. The side is chosen from the menu's REAL
-  // measured width once it renders (a width guess sent it to the wrong side and
-  // let md-menu clamp it flush against the fan).
+  // (top-aligned and always on-screen), placed to the RIGHT of the whole fan
+  // with a margin. Everything is set BEFORE opening — no post-open reposition,
+  // which is what stopped the menu from appearing.
   function openSubMenuBeside(menu: any, row: HTMLElement) {
     const r  = row.getBoundingClientRect();
     const fan = row.closest('.shelf-fan') as HTMLElement | null;
     const fr = fan ? fan.getBoundingClientRect() : r;
-    menu.yOffset = 0;
-    menu.anchorElement = row;
-    // Default to the right side (correct in the common case); placeSubMenu
-    // refines the side once it can measure the width.
+    // menu top-left at the row's top-right, then shifted past the fan's right
+    // edge plus the margin (clears the fan regardless of this row's width).
     menu.anchorCorner = 'start-end';
     menu.menuCorner = 'start-start';
     menu.xOffset = Math.round(fr.right - r.right + SUBMENU_GAP);
-    const place = () => placeSubMenu(menu, r, fr);
-    if (menu.open) { menu.open = false; requestAnimationFrame(() => { menu.open = true; place(); }); }
-    else { menu.open = true; place(); }
-  }
-
-  // Pick the side from the real surface width and re-position. Strongly prefer
-  // the right: go right whenever the menu + margin fits, or whenever the right
-  // simply has at least as much room as the left.
-  function placeSubMenu(menu: any, r: DOMRect, fr: DOMRect, tries = 6) {
-    requestAnimationFrame(() => {
-      const surface = menu.shadowRoot && menu.shadowRoot.querySelector('.menu');
-      const mw = surface ? surface.offsetWidth : 0;
-      if (!mw && tries > 0) { placeSubMenu(menu, r, fr, tries - 1); return; }
-      const roomRight = window.innerWidth - fr.right;
-      const roomLeft  = fr.left;
-      const toRight = roomRight >= mw + SUBMENU_GAP || roomRight >= roomLeft;
-      if (toRight) {            // menu's top-left past the fan's right edge
-        menu.anchorCorner = 'start-end';
-        menu.menuCorner = 'start-start';
-        menu.xOffset = Math.round(fr.right - r.right + SUBMENU_GAP);
-      } else {                  // menu's top-right past the fan's left edge
-        menu.anchorCorner = 'start-start';
-        menu.menuCorner = 'start-end';
-        menu.xOffset = Math.round(fr.left - r.left - SUBMENU_GAP);
-      }
-      if (typeof menu.reposition === 'function') menu.reposition();
-    });
+    menu.yOffset = 0;
+    menu.anchorElement = row;
+    // Re-open if already open (right-clicking row → row) so it moves anchor.
+    if (menu.open) { menu.open = false; requestAnimationFrame(() => { menu.open = true; }); }
+    else menu.open = true;
   }
 
   function setupContextMenu() {
