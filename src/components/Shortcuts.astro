@@ -1,31 +1,59 @@
 ---
 /**
- * Shortcuts — Chrome OS–style circular app icons in the shelf.
+ * Shortcuts — the shelf's app row plus its collapsing "menu" area.
  *
- * Each icon is a 40dp circle (white background, MD3 elevation) holding the
- * site's favicon, fetched from Google's favicon service by domain.
+ * Layout (left → right):
+ *   [ configured shortcuts · divider · Chrome bookmarks ]   ← the inline row
+ *   [ ┊ · Archived · More ]                                 ← the menu area
  *
- * Per-item favicon size (the `scale` field, 0–100, percent of the circle):
- *   • 100 → favicon fills the whole circle and is clipped by the circle's
- *           rounded boundary (turns a square favicon into a round app icon).
- *           Best for favicons that ship their own square coloured background.
- *   • < 100 → favicon is scaled down proportionally and centred, leaving the
- *           white circle visible around it. Best for transparent / glyph-only
- *           favicons. e.g. 55 ≈ a small centred glyph; 75 ≈ a larger one.
+ * The menu area is split off by a divider and holds up to two trigger icons:
+ *   • Archived — shown only when ≥1 item has been archived. Reveals every
+ *                archived item in a fan.
+ *   • More (overflow) — shown only when the inline row can't fit every
+ *                non-archived item. Reveals the items that didn't fit.
  *
- * Per-item elevation (the `elevation` field, 0–3):
- *   Maps to MD3 elevation levels. Defaults to 1. Independent of `scale`.
+ * Both triggers open a "fan": a vertical popover of horizontal circle-and-label
+ * rows that slides up out of the shelf (macOS-dock "Downloads" list style).
  *
- * Both fields are configurable per shortcut and persisted in
- * chrome.storage.local under `shortcuts`.
+ * Responsibilities here: render the model, measure available width and decide
+ * what overflows (trailing-first), wire the shared right-click menu (including
+ * Archive / Unarchive), and keep bookmark drag-reordering working. The data
+ * model and the fan mechanics live in ../lib/shelf-items.js and
+ * ../lib/shelf-fan.js respectively.
  */
 ---
 
 <div class="shelf-apps" id="shelf-apps" role="list" aria-label="App shortcuts">
-  <!-- Populated by script -->
+  <!-- Inline icon row (configured shortcuts + Chrome bookmarks) -->
+  <div class="shelf-row" id="shelf-row"><!-- populated by script --></div>
+
+  <!-- Menu area: divider + the (conditional) Archived / Overflow triggers -->
+  <div class="shelf-menus" id="shelf-menus">
+    <span class="shelf-sep shelf-menus__sep" id="menus-sep" aria-hidden="true" hidden></span>
+    <button class="shelf-trigger" id="trigger-archived" type="button" hidden aria-label="Archived">
+      <span class="shelf-icon__circle elev-1 shelf-trigger__circle" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>
+        </svg>
+      </span>
+      <span class="shelf-icon__tip" role="tooltip">Archived</span>
+    </button>
+    <button class="shelf-trigger" id="trigger-overflow" type="button" hidden aria-label="More apps">
+      <span class="shelf-icon__circle elev-1 shelf-trigger__circle" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+        </svg>
+      </span>
+      <span class="shelf-icon__tip" role="tooltip">More</span>
+    </button>
+  </div>
 </div>
 
-<!-- Shared right-click menu for any shelf icon (anchored in JS to the clicked one) -->
+<!-- Fan popovers — populated on render; one open at a time (see shelf-fan.js) -->
+<div class="shelf-fan" id="fan-archived" role="list" aria-label="Archived apps" hidden></div>
+<div class="shelf-fan" id="fan-overflow" role="list" aria-label="More apps" hidden></div>
+
+<!-- Shared right-click menu for any shelf icon / fan row (anchored in JS) -->
 <md-menu id="app-context-menu" positioning="fixed" y-offset="16" anchor-corner="start-start" menu-corner="end-start">
   <md-menu-item id="ctx-newtab">
     <div slot="headline">Open in New Tab</div>
@@ -51,196 +79,300 @@
       <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
     </svg>
   </md-menu-item>
+  <md-divider role="separator"></md-divider>
+  <md-menu-item id="ctx-archive">
+    <div slot="headline">Archive</div>
+    <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>
+    </svg>
+  </md-menu-item>
+  <md-menu-item id="ctx-unarchive" style="display:none">
+    <div slot="headline">Unarchive</div>
+    <svg slot="start" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.55 5.22l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.15.55L3.46 5.22C3.17 5.57 3 6.01 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.49-.17-.93-.45-1.28zM12 9.5l5.5 5.5H14v2h-4v-2H6.5L12 9.5zM5.12 5l.82-1h12l.93 1H5.12z"/>
+    </svg>
+  </md-menu-item>
 </md-menu>
 
 <script>
-  import { storageGet, storageSet } from '../lib/storage.js';
+  import { storageSet } from '../lib/storage.js';
   import { showSnackbar } from '../lib/snackbar.js';
   import { openCenteredMenu } from '../lib/menu.js';
-  import { faviconFor } from '../lib/favicons.js';
+  import { loadShelf, iconHTML, rowHTML, setArchived } from '../lib/shelf-items.js';
+  import { bindFan, closeFan, isFanOpen, installFanDismissers } from '../lib/shelf-fan.js';
 
-  // scale: 0–100 (percent of circle)  ·  elevation: 0 | 1 | 2 | 3
-  const DEFAULT_SHORTCUTS = [
-    { label: 'Gmail',    url: 'https://mail.google.com',     scale: 80, elevation: 1 },
-    { label: 'Calendar', url: 'https://calendar.google.com', scale: 80, elevation: 1 },
-    { label: 'GitHub',   url: 'https://github.com',          scale: 73,  elevation: 1 },
-    { label: 'YouTube',  url: 'https://youtube.com',         scale: 67, elevation: 1 },
-    { label: 'Notion',   url: 'https://notion.so',           scale: 73,  elevation: 1 },
-    { label: 'Figma',    url: 'https://figma.com',           scale: 67,  elevation: 1 },
-    { label: 'Linear',   url: 'https://linear.app',          scale: 90, elevation: 1 },
-    { label: 'Vercel',   url: 'https://vercel.com',          scale: 100,  elevation: 1 },
-  ];
+  const GAP = 6;        // matches the flex `gap` between shelf items
 
-  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
-  const esc = (s: string) => String(s).replace(/[&<>"]/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  // The resolved model is cached so the context menu / fans can look items up.
+  let model: { items: any[]; appOverrides: any } = { items: [], appOverrides: {} };
 
-  /** Build one shelf icon.
-   *  kind: 'shortcut' (fixed) | 'bookmark' (draggable).
-   *  bg:   optional circle background override (hex).
-   *  iconSrc: optional favicon override (else the default faviconFor). */
-  function iconHTML(item: any, scaleDefault = 100, elevDefault = 1,
-                    kind = 'shortcut', bg = '', iconSrc = '', offset?: {x:number;y:number}): string {
-    const scale = clamp(typeof item.scale === 'number' ? item.scale : scaleDefault, 0, 100);
-    const elev  = [0, 1, 2, 3].includes(item.elevation) ? item.elevation : elevDefault;
-    const label = esc(item.label ?? item.url ?? '');
-    const bgStyle = bg ? `background:${esc(bg)};` : '';
-    const off = offset && (offset.x || offset.y) ? `transform:translate(${offset.x}px,${offset.y}px);` : '';
-    const src = iconSrc || faviconFor(item.url);
-    // Bookmarks are draggable to reorder; fixed shortcuts are not.
-    const draggable = kind === 'bookmark' ? 'true' : 'false';
-    // No target=_blank: a normal click opens in THIS tab. New-tab / copy are
-    // available from the right-click menu (and middle-click still opens a tab).
-    return `
-      <a class="shelf-icon" href="${esc(item.url)}" role="listitem" aria-label="${label}"
-         data-url="${esc(item.url)}" data-kind="${kind}" draggable="${draggable}">
-        <span class="shelf-icon__circle elev-${elev}" style="${bgStyle}" aria-hidden="true">
-          <img class="shelf-icon__favicon" draggable="false"
-               style="width:${scale}%;height:${scale}%;${off}"
-               src="${esc(src)}" alt="" loading="lazy" />
-        </span>
-        <span class="shelf-icon__tip" role="tooltip">${label}</span>
-      </a>`;
-  }
+  const $ = (id: string) => document.getElementById(id);
 
-  /** Read the Chrome Bookmarks Bar (node id "1"); bookmarks only (skip folders). */
-  async function getBookmarksBar(): Promise<{ label: string; url: string }[]> {
-    if (typeof chrome === 'undefined' || !chrome?.bookmarks) return [];
-    return new Promise(resolve => {
-      chrome.bookmarks.getChildren('1', (children: any[]) => {
-        if (chrome.runtime.lastError || !children) { resolve([]); return; }
-        resolve(children
-          .filter(n => n.url)
-          .map(n => ({ label: n.title || n.url, url: n.url })));
-      });
-    });
-  }
-
+  // ── Render: rebuild the inline row + the Archived fan, then lay out ─────────
   async function render() {
-    const shelf = document.getElementById('shelf-apps');
-    if (!shelf) return;
+    model = await loadShelf();
+    const row = $('shelf-row');
+    if (!row) return;
 
-    // Per-app overrides (scale / bg / icon), keyed by URL — apply to every item.
-    const { appOverrides = {} } = await storageGet('appOverrides') as any;
-    const make = (item: any, scaleDefault: number, kind: string) => {
-      const ov = appOverrides[item.url] || {};
-      const scale = typeof ov.scale === 'number' ? ov.scale
-        : (typeof item.scale === 'number' ? item.scale : scaleDefault);
-      return iconHTML({ ...item, scale }, scaleDefault, 1, kind, ov.bg || '', ov.icon || '', ov.offset);
+    const visible  = model.items.filter(i => !i.archived);
+    const shortcuts = visible.filter(i => i.kind === 'shortcut');
+    const bookmarks = visible.filter(i => i.kind === 'bookmark');
+
+    let html = shortcuts.map(it => iconHTML(it, model.appOverrides)).join('');
+    if (shortcuts.length && bookmarks.length)
+      html += '<span class="shelf-sep shelf-sep--inner" aria-hidden="true"></span>';
+    html += bookmarks.map(it => iconHTML(it, model.appOverrides)).join('');
+    row.innerHTML = html;
+
+    // Archived fan + trigger (only present when something is archived).
+    const archived = model.items.filter(i => i.archived);
+    const fanArchived = $('fan-archived')!;
+    fanArchived.innerHTML = archived.map(it => rowHTML(it, model.appOverrides)).join('');
+    const trigArchived = $('trigger-archived') as HTMLButtonElement;
+    trigArchived.hidden = archived.length === 0;
+    if (archived.length === 0 && isFanOpen(fanArchived)) closeFan();
+
+    layout();
+  }
+
+  const EDGE_GAP = 8;   // smallest gap the cluster keeps from launcher / status
+
+  // The icons live in the shelf's centre grid track, which is exactly the gap
+  // between the launcher (auto) and the status area (auto) — its width is the
+  // total room available and is stable regardless of how many icons we show
+  // (minmax(0,1fr) stops the icons from stretching it). The cluster is centred
+  // in that gap by CSS, so balanced gaps fall out for free when items fit, and
+  // it fills the gap edge-to-edge (max items, no wasted space) when they don't.
+  function budgetWidth(): number {
+    const zone = document.querySelector('.shelf__zone--center') as HTMLElement | null;
+    return zone ? zone.clientWidth - 2 * EDGE_GAP : Infinity;
+  }
+
+  // ── Layout: measure, decide overflow (trailing-first), populate the fan ─────
+  function layout() {
+    const row = $('shelf-row');
+    if (!row) return;
+    const icons    = Array.from(row.querySelectorAll('.shelf-icon')) as HTMLElement[];
+    const innerSep = row.querySelector('.shelf-sep--inner') as HTMLElement | null;
+    const menusSep = $('menus-sep') as HTMLElement;
+    const trigArchived = $('trigger-archived') as HTMLButtonElement;
+    const trigOverflow = $('trigger-overflow') as HTMLButtonElement;
+    const fanOverflow  = $('fan-overflow')!;
+
+    // Reset to fully-shown so every width measures true.
+    icons.forEach(el => { el.hidden = false; });
+    if (innerSep) innerSep.hidden = false;
+    trigOverflow.hidden = false;
+
+    // Fit the cluster to the gap between the launcher and the status area; CSS
+    // keeps it centred in that gap (see budgetWidth).
+    const budget = budgetWidth();
+
+    const archivedShown = !trigArchived.hidden;
+    const itemW     = icons.map(el => el.offsetWidth + GAP);
+    const totalItems = itemW.reduce((a, b) => a + b, 0);
+    const innerSepW = innerSep ? innerSep.offsetWidth + GAP : 0;
+    const sepW      = menusSep.offsetWidth + GAP;
+    const archW     = archivedShown ? trigArchived.offsetWidth + GAP : 0;
+    const overW     = trigOverflow.offsetWidth + GAP;
+
+    const setInnerSep = (vis: HTMLElement[]) => {
+      if (!innerSep) return;
+      const hasS = vis.some(el => el.dataset.kind === 'shortcut');
+      const hasB = vis.some(el => el.dataset.kind === 'bookmark');
+      innerSep.hidden = !(hasS && hasB);
     };
 
-    // 1) Configured shortcuts (storage override → defaults)
-    const { shortcuts } = await storageGet('shortcuts') as any;
-    const items = shortcuts ?? DEFAULT_SHORTCUTS;
-    let html = items.map((s: any) => make(s, 100, 'shortcut')).join('');
-
-    // 2) Separator + Chrome Bookmarks Bar — reorderable
-    const bookmarks = await getBookmarksBar();
-    if (bookmarks.length) {
-      const { bookmarkOrder = [] } = await storageGet('bookmarkOrder') as any;
-      // Apply the user's saved order; bookmarks not in the list keep their
-      // natural order and go after the ordered ones.
-      bookmarks.sort((a, b) => {
-        const ia = bookmarkOrder.indexOf(a.url);
-        const ib = bookmarkOrder.indexOf(b.url);
-        if (ia === -1 && ib === -1) return 0;
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
-        return ia - ib;
-      });
-      html += '<span class="shelf-sep" aria-hidden="true"></span>';
-      html += bookmarks.map(b => make(b, 85, 'bookmark')).join('');
+    // Everything fits → no overflow trigger; divider only if Archived is shown.
+    const menuNoOverflow = archivedShown ? sepW + archW : 0;
+    if (totalItems + innerSepW + menuNoOverflow <= budget) {
+      trigOverflow.hidden = true;
+      fanOverflow.innerHTML = '';
+      if (isFanOpen(fanOverflow)) closeFan();
+      menusSep.hidden = !archivedShown;
+      setInnerSep(icons);
+      return;
     }
 
-    shelf.innerHTML = html;
+    // Overflow: reserve the menu area (divider + [Archived] + Overflow), then
+    // greedily keep leading icons until the next one wouldn't fit.
+    const reserve = sepW + archW + overW;
+    let used = innerSepW;   // conservatively reserve the inner divider
+    let k = 0;
+    for (; k < icons.length; k++) {
+      if (used + itemW[k] > budget - reserve) break;
+      used += itemW[k];
+    }
+    icons.forEach((el, i) => { el.hidden = i >= k; });
+    menusSep.hidden = false;
+    trigOverflow.hidden = false;
+
+    const overflowed = icons.slice(k);
+    fanOverflow.innerHTML = overflowed.map(el => {
+      const it = model.items.find(m => m.url === el.dataset.url);
+      return it ? rowHTML(it, model.appOverrides) : '';
+    }).join('');
+    setInnerSep(icons.slice(0, k));
   }
 
-  // Allow other components (the containment adjuster) to force a re-render.
-  window.addEventListener('shelf-icons-refresh', () => { render(); });
+  // ── Shared right-click menu (icons + fan rows) ──────────────────────────────
+  let ctxUrl = '', ctxKind = 'shortcut', ctxLabel = '', ctxScale = 85, ctxIcon = '';
+  let ctxArchived = false;
 
-  // ── Right-click context menu (shared, re-anchored per icon) ─────────────────
-  let ctxUrl = '';
-  let ctxKind = 'shortcut';
-  let ctxLabel = '';
-  let ctxScale = 85;
-  let ctxIcon = '';
+  const SUBMENU_GAP = 6;   // margin between the fan and the submenu
+
+  // A 0×0 fixed anchor we move to the exact point we want the submenu's corner
+  // to land on — the same trick the desktop menu uses. Anchoring to a point (not
+  // the row) removes md-menu's anchor-width / corner math, so the menu's edge
+  // sits precisely at SUBMENU_GAP from the fan and the margin is fully ours.
+  let subAnchor: HTMLElement | null = null;
+  function subMenuAnchor() {
+    if (!subAnchor) {
+      subAnchor = document.createElement('div');
+      subAnchor.setAttribute('aria-hidden', 'true');
+      subAnchor.style.cssText = 'position:fixed;width:0;height:0;';
+      document.body.appendChild(subAnchor);
+    }
+    return subAnchor;
+  }
+
+  // Open the context menu as a submenu beside a fan row, top-aligned with it.
+  // Both flips are disabled so md-menu doesn't move the surface off our point;
+  // we pick the side ourselves (right of the fan, or left when the right is
+  // cramped) and place the matching menu corner at fan edge ± SUBMENU_GAP.
+  function openSubMenuBeside(menu: any, row: HTMLElement) {
+    const r  = row.getBoundingClientRect();
+    const fan = row.closest('.shelf-fan') as HTMLElement | null;
+    const fr = fan ? fan.getBoundingClientRect() : r;
+    const anchor = subMenuAnchor();
+    menu.noHorizontalFlip = true;
+    menu.noVerticalFlip = true;
+    menu.anchorCorner = 'start-start';
+    menu.xOffset = 0;
+    menu.yOffset = 0;
+
+    const roomRight = window.innerWidth - fr.right;
+    const toRight = roomRight >= 200 || roomRight >= fr.left;
+    if (toRight) {                       // menu's top-left at fan.right + gap
+      menu.menuCorner = 'start-start';
+      anchor.style.left = Math.round(fr.right + SUBMENU_GAP) + 'px';
+    } else {                             // menu's top-right at fan.left − gap
+      menu.menuCorner = 'start-end';
+      anchor.style.left = Math.round(fr.left - SUBMENU_GAP) + 'px';
+    }
+    anchor.style.top = Math.round(r.top) + 'px';
+    menu.anchorElement = anchor;
+
+    // Highlight the row the submenu applies to (cleared on the menu's close).
+    document.querySelectorAll('.shelf-row-item.menu-active').forEach(x => x.classList.remove('menu-active'));
+    row.classList.add('menu-active');
+    // Re-open if already open (right-clicking row → row) so it moves anchor.
+    if (menu.open) { menu.open = false; requestAnimationFrame(() => { menu.open = true; }); }
+    else menu.open = true;
+  }
 
   function setupContextMenu() {
-    const shelf = document.getElementById('shelf-apps');
-    const menu  = document.getElementById('app-context-menu') as any;
-    if (!shelf || !menu) return;
+    const menu = $('app-context-menu') as any;
+    const apps = $('shelf-apps');
+    if (!menu || !apps) return;
 
-    // Open our menu instead of the browser's on right-click of an icon.
-    shelf.addEventListener('contextmenu', (e: MouseEvent) => {
-      const icon = (e.target as HTMLElement).closest('.shelf-icon') as HTMLElement | null;
-      if (!icon) return;
+    document.addEventListener('contextmenu', (e: MouseEvent) => {
+      const el = (e.target as HTMLElement).closest('.shelf-icon, .shelf-row-item') as HTMLElement | null;
+      if (!el) return;
       e.preventDefault();
-      ctxUrl   = icon.getAttribute('href') || '';
-      ctxKind  = icon.dataset.kind || 'shortcut';
-      ctxLabel = icon.getAttribute('aria-label') || '';
-      const fav = icon.querySelector('.shelf-icon__favicon') as HTMLElement | null;
+      const inFan = el.classList.contains('shelf-row-item');
+      // For a fan row, leave the fan open and present the menu as a submenu
+      // beside the row. Only close a fan when acting on an inline shelf icon.
+      if (!inFan) closeFan();
+
+      ctxUrl   = el.getAttribute('href') || '';
+      ctxKind  = el.dataset.kind || 'shortcut';
+      ctxLabel = el.getAttribute('aria-label') || '';
+      ctxArchived = !!model.items.find(i => i.url === ctxUrl)?.archived;
+      const fav = el.querySelector('.shelf-icon__favicon') as HTMLElement | null;
       ctxScale = parseInt(fav?.style.width || '') || (ctxKind === 'bookmark' ? 85 : 100);
       ctxIcon  = fav?.getAttribute('src') || '';
-      // Keep this icon's hover elevation on while its menu is open.
-      shelf.querySelectorAll('.shelf-icon.menu-active').forEach(el => el.classList.remove('menu-active'));
-      icon.classList.add('menu-active');
-      // Hide the tooltip first, then reveal the menu (centred) once it's faded.
-      shelf.classList.add('menu-open');
-      setTimeout(() => openCenteredMenu(menu, icon), 120);
-    });
-    // Let tooltips return + drop the elevation once the menu is dismissed.
-    menu.addEventListener('closed', () => {
-      shelf.classList.remove('menu-open');
-      shelf.querySelectorAll('.shelf-icon.menu-active').forEach(el => el.classList.remove('menu-active'));
-    });
 
-    document.getElementById('ctx-newtab')?.addEventListener('click', () => {
-      if (ctxUrl) window.open(ctxUrl, '_blank');
-    });
-    document.getElementById('ctx-thistab')?.addEventListener('click', () => {
-      if (ctxUrl) window.location.href = ctxUrl;
-    });
-    document.getElementById('ctx-copy')?.addEventListener('click', async () => {
-      if (!ctxUrl) return;
-      try {
-        await navigator.clipboard.writeText(ctxUrl);
-        showSnackbar('Link copied to clipboard');
-      } catch (err) {
-        showSnackbar('Couldn’t copy link');
-        console.error('[Enten] Copy link failed', err);
+      // Archive ↔ Unarchive: show whichever applies to this item. md-menu-item
+      // sets its own `:host { display }`, which beats the UA `[hidden]` rule, so
+      // toggle inline `display` (an inline style wins) rather than `hidden`.
+      ($('ctx-archive') as HTMLElement).style.display = ctxArchived ? 'none' : '';
+      ($('ctx-unarchive') as HTMLElement).style.display = ctxArchived ? '' : 'none';
+
+      if (inFan) {
+        // Submenu-style: open to the side of the row (whichever side has room),
+        // top-aligned with it, without disturbing the open fan.
+        openSubMenuBeside(menu, el);
+      } else {
+        apps.querySelectorAll('.shelf-icon.menu-active').forEach(x => x.classList.remove('menu-active'));
+        el.classList.add('menu-active');
+        apps.classList.add('menu-open');
+        // Restore the default "above, centred" placement for inline icons.
+        menu.noHorizontalFlip = false;
+        menu.noVerticalFlip = false;
+        menu.anchorCorner = 'start-start';
+        menu.menuCorner = 'end-start';
+        menu.yOffset = 16;
+        setTimeout(() => openCenteredMenu(menu, el), 120);
       }
     });
-    document.getElementById('ctx-adjust')?.addEventListener('click', () => {
+
+    menu.addEventListener('closed', () => {
+      apps.classList.remove('menu-open');
+      // Clear the active highlight on inline icons AND fan rows (fans live
+      // outside .shelf-apps, so query the whole document for the row case).
+      apps.querySelectorAll('.shelf-icon.menu-active').forEach(x => x.classList.remove('menu-active'));
+      document.querySelectorAll('.shelf-row-item.menu-active').forEach(x => x.classList.remove('menu-active'));
+    });
+
+    $('ctx-newtab')?.addEventListener('click', () => { if (ctxUrl) window.open(ctxUrl, '_blank'); });
+    $('ctx-thistab')?.addEventListener('click', () => { if (ctxUrl) window.location.href = ctxUrl; });
+    $('ctx-copy')?.addEventListener('click', async () => {
+      if (!ctxUrl) return;
+      try { await navigator.clipboard.writeText(ctxUrl); showSnackbar('Link copied to clipboard'); }
+      catch (err) { showSnackbar('Couldn’t copy link'); console.error('[Enten] Copy link failed', err); }
+    });
+    $('ctx-adjust')?.addEventListener('click', () => {
       if (!ctxUrl) return;
       window.dispatchEvent(new CustomEvent('open-containment', {
         detail: { url: ctxUrl, label: ctxLabel, scale: ctxScale, icon: ctxIcon },
       }));
     });
+    $('ctx-archive')?.addEventListener('click', async () => {
+      if (!ctxUrl) return;
+      await setArchived(ctxUrl, true);
+      await render();
+      showSnackbar(`Archived ${ctxLabel || 'item'}`);
+    });
+    $('ctx-unarchive')?.addEventListener('click', async () => {
+      if (!ctxUrl) return;
+      await setArchived(ctxUrl, false);
+      await render();
+      showSnackbar(`Restored ${ctxLabel || 'item'}`);
+    });
   }
 
-  // ── Drag to reorder bookmark icons (bookmarks only) ─────────────────────────
+  // ── Drag to reorder bookmark icons (bookmarks only, within the row) ─────────
   function setupReorder() {
-    const shelf = document.getElementById('shelf-apps');
-    if (!shelf) return;
+    const row = $('shelf-row');
+    if (!row) return;
     let dragEl: HTMLElement | null = null;
-    let dropAfter: HTMLElement | null = null;   // insert before this (null = end)
+    let dropAfter: HTMLElement | null = null;
 
-    // Glowing vertical bar previewing where the icon will land.
     const indicator = document.createElement('span');
     indicator.className = 'drop-indicator';
     indicator.setAttribute('aria-hidden', 'true');
 
     const bookmarkIcons = () =>
-      Array.from(shelf.querySelectorAll('.shelf-icon[data-kind="bookmark"]')) as HTMLElement[];
+      Array.from(row.querySelectorAll('.shelf-icon[data-kind="bookmark"]')) as HTMLElement[];
 
-    // Next bookmark after `el` in the DOM (skips the indicator / other nodes).
     const nextBookmark = (el: HTMLElement): HTMLElement | null => {
       let n = el.nextElementSibling as HTMLElement | null;
       while (n && !n.matches('.shelf-icon[data-kind="bookmark"]')) n = n.nextElementSibling as HTMLElement | null;
       return n;
     };
 
-    shelf.addEventListener('dragstart', (e: DragEvent) => {
+    row.addEventListener('dragstart', (e: DragEvent) => {
       const icon = (e.target as HTMLElement).closest('.shelf-icon[data-kind="bookmark"]') as HTMLElement | null;
       if (!icon) return;
       dragEl = icon;
@@ -251,41 +383,36 @@
       } catch { /* noop */ }
     });
 
-    shelf.addEventListener('dragover', (e: DragEvent) => {
+    row.addEventListener('dragover', (e: DragEvent) => {
       if (!dragEl) return;
       e.preventDefault();
       e.dataTransfer!.dropEffect = 'move';
-      // Remove the indicator first so sibling math ignores it.
       indicator.remove();
-      // First bookmark (other than the dragged one) whose midpoint is past the
-      // cursor → insert before it; otherwise the end of the bookmark run.
       const after = bookmarkIcons().filter(el => el !== dragEl).find(el => {
         const r = el.getBoundingClientRect();
         return e.clientX < r.left + r.width / 2;
       }) || null;
       dropAfter = after;
-      // Only show the indicator when the drop would actually move the icon.
-      // (after === the icon's current next bookmark → it would land in place.)
       if (after !== nextBookmark(dragEl)) {
-        if (after) shelf.insertBefore(indicator, after);
-        else shelf.appendChild(indicator);
+        if (after) row.insertBefore(indicator, after);
+        else row.appendChild(indicator);
       }
     });
 
-    shelf.addEventListener('drop', async (e: DragEvent) => {
+    row.addEventListener('drop', async (e: DragEvent) => {
       if (!dragEl) return;
       e.preventDefault();
       indicator.remove();
-      // Skip if it would land in its original position.
       if (dropAfter !== nextBookmark(dragEl)) {
-        if (dropAfter) shelf.insertBefore(dragEl, dropAfter);
-        else shelf.appendChild(dragEl);
+        if (dropAfter) row.insertBefore(dragEl, dropAfter);
+        else row.appendChild(dragEl);
         const order = bookmarkIcons().map(el => el.dataset.url).filter(Boolean);
         await storageSet({ bookmarkOrder: order });
+        layout();   // the new order may change what overflows
       }
     });
 
-    shelf.addEventListener('dragend', () => {
+    row.addEventListener('dragend', () => {
       indicator.remove();
       dragEl?.classList.remove('dragging');
       dragEl = null;
@@ -293,14 +420,38 @@
     });
   }
 
+  // ── Boot ────────────────────────────────────────────────────────────────────
+  function setupFans() {
+    bindFan($('trigger-archived')!, $('fan-archived')!);
+    bindFan($('trigger-overflow')!, $('fan-overflow')!);
+    installFanDismissers();
+  }
+
+  function watchResize() {
+    if (!('ResizeObserver' in window)) {
+      window.addEventListener('resize', () => layout());
+      return;
+    }
+    const ro = new ResizeObserver(() => layout());
+    const shelf = document.querySelector('.shelf');
+    const end   = document.querySelector('.shelf__zone--end');
+    if (shelf) ro.observe(shelf);
+    if (end) ro.observe(end);   // re-flow when the status area's width changes
+  }
+
+  // Allow other components (the containment adjuster) to force a re-render.
+  window.addEventListener('shelf-icons-refresh', () => { render(); });
+
   render();
   setupContextMenu();
   setupReorder();
+  setupFans();
+  watchResize();
 </script>
 
-<!-- is:global — shelf icons are injected at runtime via innerHTML, which never
-     receives Astro's scoped [data-astro-cid-*] attribute. Scoped rules would
-     not match those nodes, so these (shelf-unique) classes must be global. -->
+<!-- is:global — shelf icons / fan rows are injected at runtime via innerHTML,
+     which never receives Astro's scoped [data-astro-cid-*] attribute. Scoped
+     rules would not match those nodes, so these classes must be global. -->
 <style is:global>
   :root {
     /* Shared "pop" shadow — used by the shelf tooltips AND the hover-revealed
@@ -327,6 +478,12 @@
     gap: 6px;
     height: 100%;
   }
+  .shelf-row, .shelf-menus {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+  }
 
   /* Bookmark being dragged to reorder */
   .shelf-icon.dragging { opacity: 0.4; cursor: grabbing; }
@@ -346,7 +503,7 @@
     50%      { box-shadow: 0 0 12px 2px var(--md-sys-color-primary); opacity: 1; }
   }
 
-  /* Divider between the configured shortcuts and the Chrome bookmarks */
+  /* Dividers: the inner one (shortcuts / bookmarks) and the menu-area one */
   .shelf-sep {
     width: 1px;
     height: 24px;
@@ -355,6 +512,7 @@
     background: var(--md-sys-color-outline-variant);
     border-radius: 1px;
   }
+  .shelf-sep[hidden] { display: none; }
 
   /* ── Shelf icon wrapper — 44dp tap target ───────────────────────── */
   .shelf-icon {
@@ -366,10 +524,9 @@
     flex-shrink: 0;
     --state-color: var(--md-sys-color-on-surface);
   }
+  .shelf-icon[hidden] { display: none; }
 
   /* ── White circle (Chrome OS app style) ─────────────────────────── */
-  /* Always clips its content to a circle via overflow:hidden, so a
-     100%-scale favicon is rounded; centres any smaller favicon.       */
   .shelf-icon__circle {
     position: relative;
     width: 40px; height: 40px;
@@ -377,46 +534,34 @@
     background: #FFFFFF;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
-    /* Flat by default — elevation is revealed on hover (no zoom). */
     box-shadow: var(--md-sys-elevation-level0);
     transition: box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
     flex-shrink: 0;
   }
 
-  /* ── Per-item elevation — revealed on hover, and kept while its menu is open ─
-     At rest every circle is elevation-less; hovering (or having the right-click
-     menu open) lifts just it. Same shadow colour as the tooltips. */
+  /* Per-item elevation — revealed on hover, kept while its menu is open. */
   .shelf-icon:hover .elev-1, .shelf-icon.menu-active .elev-1 { box-shadow: var(--shelf-pop-shadow-1); }
   .shelf-icon:hover .elev-2, .shelf-icon.menu-active .elev-2 { box-shadow: var(--shelf-pop-shadow-2); }
   .shelf-icon:hover .elev-3, .shelf-icon.menu-active .elev-3 { box-shadow: var(--shelf-pop-shadow-3); }
 
   /* ── Favicon ─────────────────────────────────────────────────────── */
-  /* Size comes from an inline width/height percentage (the `scale` field).
-     object-fit: cover means a 100% favicon fills the circle edge-to-edge
-     (then clipped round); a smaller one is centred by the flex container. */
   .shelf-icon__favicon {
     display: block;
     object-fit: cover;
     pointer-events: none;
   }
 
-  /* ── Hover tooltip — reveals the shortcut name above the shelf ─────────────
-     Styled to match the menus: same corner radius (extra-large) and the same
-     elevation (level 2) on a surface-container background. */
+  /* ── Hover tooltip — reveals the shortcut name above the shelf ───────────── */
   .shelf-icon__tip {
     position: absolute;
-    /* Gap to the shelf TOP edge = --shelf-gap (same as the shelf's float gap).
-       The icon is centred in the bar, so add its top margin (height−44)/2. */
     bottom: calc(100% + var(--shelf-gap) + (var(--shelf-height) - 44px) / 2);
     left: 50%;
-    /* Grows from the bar: starts small + lower, scaling from its bottom edge */
     transform-origin: bottom center;
     transform: translateX(-50%) translateY(10px) scale(0.7);
     padding: 10px 18px;
     background: var(--md-sys-color-surface-container);
     color: var(--md-sys-color-on-surface);
-    border-radius: var(--md-sys-shape-corner-extra-large); /* same as menus */
-    /* Same "pop" shadow shared with the hover-revealed icon elevation. */
+    border-radius: var(--md-sys-shape-corner-extra-large);
     box-shadow: var(--shelf-pop-shadow-2);
     font: var(--md-sys-typescale-title-small);
     letter-spacing: var(--md-sys-typescale-title-small-tracking);
@@ -428,17 +573,93 @@
     z-index: 50;
   }
   .shelf-icon:hover .shelf-icon__tip,
-  .shelf-icon:focus-visible .shelf-icon__tip {
+  .shelf-icon:focus-visible .shelf-icon__tip,
+  .shelf-trigger:hover .shelf-icon__tip,
+  .shelf-trigger:focus-visible .shelf-icon__tip {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
-    transition-delay: 200ms;           /* brief delay before revealing */
+    transition-delay: 200ms;
   }
-  /* While the right-click menu is open, hide tooltips immediately (no delay)
-     so the tooltip disappears before the menu appears, and returns after. */
+  /* While a right-click menu is open, hide tooltips immediately (no delay). */
   .shelf-apps.menu-open .shelf-icon__tip {
     opacity: 0;
     transform: translateX(-50%) translateY(10px) scale(0.7);
     transition: opacity 100ms ease, transform 100ms ease;
     transition-delay: 0ms;
+  }
+
+  /* ── Menu-area trigger icons (Archived / More) ───────────────────────────── */
+  .shelf-trigger {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    padding: 0; border: none; background: none; cursor: pointer;
+    border-radius: var(--md-sys-shape-corner-full);
+    flex-shrink: 0;
+  }
+  .shelf-trigger[hidden] { display: none; }
+  /* Distinct from the white app circles: a themed "system" affordance. */
+  .shelf-trigger .shelf-trigger__circle {
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .shelf-trigger:hover .shelf-trigger__circle,
+  .shelf-trigger.is-active .shelf-trigger__circle { box-shadow: var(--shelf-pop-shadow-1); }
+  .shelf-trigger.is-active .shelf-trigger__circle {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+  /* Don't compete with the open fan. */
+  .shelf-trigger.is-active .shelf-icon__tip { opacity: 0 !important; transform: translateX(-50%) translateY(10px) scale(0.7); }
+
+  /* ── Fan popover — a vertical list that slides up out of the shelf ───────── */
+  .shelf-fan {
+    position: fixed;
+    z-index: 45;                       /* above the shelf (20) */
+    transform: translateX(-50%);       /* `left` (set in JS) is the trigger's centre */
+    display: flex;
+    flex-direction: column-reverse;    /* first DOM row sits at the bottom */
+    gap: 6px;
+    padding: 8px;
+    max-height: calc(100vh - var(--shelf-clearance) - 24px);
+    overflow-y: auto;
+    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-corner-large);
+    box-shadow: var(--shelf-pop-shadow-2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+  .shelf-fan.is-revealed { opacity: 1; pointer-events: auto; }
+  .shelf-fan[hidden] { display: none; }
+
+  /* Fan row — circle + label beside it (macOS-dock list style). */
+  .shelf-row-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 4px 16px 4px 4px;
+    border-radius: var(--md-sys-shape-corner-full);
+    text-decoration: none;
+    color: var(--md-sys-color-on-surface);
+    /* Each row starts low + faded; revealed (with a per-row delay) on open. */
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 220ms cubic-bezier(0.2, 0, 0, 1),
+                transform 260ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .shelf-fan.is-revealed .shelf-row-item { opacity: 1; transform: translateY(0); }
+  .shelf-row-item:hover,
+  .shelf-row-item.menu-active { background: var(--md-sys-color-surface-container-highest); }
+  .shelf-row-item .shelf-icon__circle { box-shadow: var(--shelf-pop-shadow-1); }
+  .shelf-row-item__label {
+    font: var(--md-sys-typescale-title-small);
+    letter-spacing: var(--md-sys-typescale-title-small-tracking);
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shelf-row-item { transition-duration: 1ms; transform: none; }
+    .shelf-fan { transition-duration: 1ms; }
   }
 </style>
