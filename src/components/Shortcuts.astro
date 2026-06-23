@@ -219,21 +219,33 @@
   let ctxUrl = '', ctxKind = 'shortcut', ctxLabel = '', ctxScale = 85, ctxIcon = '';
   let ctxArchived = false;
 
-  const SUBMENU_GAP = 2;   // margin between the fan and the submenu
+  const SUBMENU_GAP = 6;   // margin between the fan and the submenu
 
-  // Open the context menu as a submenu beside a fan row. Anchored to the ROW
-  // (top-aligned and always on-screen), placed to the RIGHT of the whole fan
-  // with a margin. Everything is set BEFORE opening — no post-open reposition,
-  // which is what stopped the menu from appearing.
+  // Open the context menu as a submenu beside a fan row, anchored to the ROW
+  // (top-aligned and always on-screen). We pick the side and offset ourselves
+  // and disable md-menu's auto inline-flip (noHorizontalFlip) — otherwise it
+  // re-positions the surface to fit the viewport and ignores our xOffset, which
+  // is why the margin wouldn't budge. With flip off the margin to the fan is
+  // exactly SUBMENU_GAP on the chosen side (md-menu only ever resizes the FAR
+  // edge if the menu overflows, so the near margin is preserved).
   function openSubMenuBeside(menu: any, row: HTMLElement) {
     const r  = row.getBoundingClientRect();
     const fan = row.closest('.shelf-fan') as HTMLElement | null;
     const fr = fan ? fan.getBoundingClientRect() : r;
-    // menu top-left at the row's top-right, then shifted past the fan's right
-    // edge plus the margin (clears the fan regardless of this row's width).
-    menu.anchorCorner = 'start-end';
-    menu.menuCorner = 'start-start';
-    menu.xOffset = Math.round(fr.right - r.right + SUBMENU_GAP);
+    menu.noHorizontalFlip = true;
+    // Prefer the right of the fan; fall back to the left only when the right is
+    // cramped and the left is roomier.
+    const roomRight = window.innerWidth - fr.right;
+    const toRight = roomRight >= 200 || roomRight >= fr.left;
+    if (toRight) {            // menu's left edge = fan's right edge + gap
+      menu.anchorCorner = 'start-end';
+      menu.menuCorner = 'start-start';
+      menu.xOffset = Math.round(fr.right - r.right + SUBMENU_GAP);
+    } else {                  // menu's right edge = fan's left edge − gap
+      menu.anchorCorner = 'start-start';
+      menu.menuCorner = 'start-end';
+      menu.xOffset = Math.round(r.left - fr.left + SUBMENU_GAP);
+    }
     menu.yOffset = 0;
     menu.anchorElement = row;
     // Highlight the row the submenu applies to (cleared on the menu's close).
@@ -281,6 +293,7 @@
         el.classList.add('menu-active');
         apps.classList.add('menu-open');
         // Restore the default "above, centred" placement for inline icons.
+        menu.noHorizontalFlip = false;
         menu.anchorCorner = 'start-start';
         menu.menuCorner = 'end-start';
         menu.yOffset = 16;
