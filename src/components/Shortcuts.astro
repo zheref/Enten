@@ -236,14 +236,12 @@
     return subAnchor;
   }
 
-  // Open the context menu as a submenu beside a fan row, top-aligned with it.
-  // Both flips are disabled so md-menu doesn't move the surface off our point;
-  // we pick the side ourselves (right of the fan, or left when the right is
-  // cramped) and place the matching menu corner at fan edge ± SUBMENU_GAP.
+  // Open the context menu as a submenu flying out from the clicked ROW (so the
+  // gap and the top align to the item itself, not the wider fan box). Both flips
+  // are disabled so md-menu places our corner exactly on the point we set; we
+  // pick the side ourselves and place the corner at the row edge ± SUBMENU_GAP.
   function openSubMenuBeside(menu: any, row: HTMLElement) {
-    const r  = row.getBoundingClientRect();
-    const fan = row.closest('.shelf-fan') as HTMLElement | null;
-    const fr = fan ? fan.getBoundingClientRect() : r;
+    const r = row.getBoundingClientRect();
     const anchor = subMenuAnchor();
     // Lock the HORIZONTAL placement (that's the margin we control); leave the
     // vertical free to flip so a row near the shelf opens upward instead of
@@ -254,16 +252,16 @@
     menu.xOffset = 0;
     menu.yOffset = 0;
 
-    const roomRight = window.innerWidth - fr.right;
-    const toRight = roomRight >= 200 || roomRight >= fr.left;
-    if (toRight) {                       // menu's top-left at fan.right + gap
+    const roomRight = window.innerWidth - r.right;
+    const toRight = roomRight >= 200 || roomRight >= r.left;
+    if (toRight) {                       // menu's top-left at row.right + gap
       menu.menuCorner = 'start-start';
-      anchor.style.left = Math.round(fr.right + SUBMENU_GAP) + 'px';
-    } else {                             // menu's top-right at fan.left − gap
+      anchor.style.left = Math.round(r.right + SUBMENU_GAP) + 'px';
+    } else {                             // menu's top-right at row.left − gap
       menu.menuCorner = 'start-end';
-      anchor.style.left = Math.round(fr.left - SUBMENU_GAP) + 'px';
+      anchor.style.left = Math.round(r.left - SUBMENU_GAP) + 'px';
     }
-    anchor.style.top = Math.round(r.top) + 'px';
+    anchor.style.top = Math.round(r.top) + 'px';   // align the menu top with the row
     menu.anchorElement = anchor;
 
     // Highlight the row the submenu applies to (cleared on the menu's close).
